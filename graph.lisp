@@ -54,13 +54,15 @@
 	      collecting edges)))
 
 (defmethod add-node ((graph graph) (node node))
-  (push node (slot-value graph 'vertices)))
+  (with-slots (vertices) graph
+    (unless (find node vertices)
+      (push node vertices))))
 
 (defmethod add-edge ((graph graph) (edge edge))
   (with-slots (vertices edges) graph
     (with-slots (node-1 node-2) edge
-      (unless (find node-1 vertices) (add-node graph node-1))
-      (unless (find node-2 vertices) (add-node graph node-2))
+      (add-node graph node-1)
+      (add-node graph node-2)
       (push edge (gethash (to-key edge) edges)))))
 
 (defmethod to-dot ((graph graph) &key (stream t))
@@ -116,13 +118,13 @@
   (with-slots (node-1 node-2) edge
     (list node-1 node-2)))
 
-(defmethod compare ((node-1 series-node) (node-2 series-node))
-  (string<= (title node-1) (title node-2)))
-
 (defmethod label ((edge edge))
   nil)
 
 ;;; Series node methods
+
+(defmethod compare ((node-1 series-node) (node-2 series-node))
+  (string<= (title node-1) (title node-2)))
 
 (defmethod label ((node series-node))
   (title node))
