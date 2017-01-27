@@ -26,42 +26,36 @@
 
 ;;; Methods
 
+(defmacro define-file-method (name slot documentation &body body)
+  `(defmethod ,name ((actors actors))
+     ,documentation
+     (with-slots (file-name ,slot) actors
+       (or ,slot (setf ,slot (with-open-file (stream file-name) ,@body))))))
+
 ;;; @TODO: own package for file-length, search
-(defmethod get-file-length ((actors actors))
-  "Returns the file length."
-  (with-slots (file-name file-length) actors
-    (or file-length
-	(setf file-length
-	      (with-open-file (stream file-name)
-		(file-length stream))))))
+(define-file-method get-file-length file-length
+    "Returns the file length."
+  (file-length stream))
 
-(defmethod data-start ((actors actors))
-  "Returns the offset of the first record."
-  (with-slots (file-name data-start) actors
-    (or data-start
-	(setf data-start
-	      (with-open-file (stream file-name)
-		(do ((line (read-line stream nil) (read-line stream nil)))
-		    ((null line))
-		  (when (or (equal line "THE ACTRESSES LIST")
-			    (equal line "THE ACTORS LIST"))
-		    (dotimes (i 4)
-		      (read-line stream nil))
-		    (return (file-position stream)))))))))
+(define-file-method data-start data-start
+    "Returns the offset of the first record."
+  (do ((line (read-line stream nil) (read-line stream nil)))
+      ((null line))
+    (when (or (equal line "THE ACTRESSES LIST")
+	      (equal line "THE ACTORS LIST"))
+      (dotimes (i 4)
+	(read-line stream nil))
+      (return (file-position stream)))))
 
-(defmethod data-end ((actors actors))
-  "Returns the offset after the last record."
-  (with-slots (file-name data-end) actors
-    (or data-end
-	(setf data-end
-	      (with-open-file (stream file-name)
-		(file-position stream (- (get-file-length actors) 100000))
-		(do ((line (read-line stream nil) (read-line stream nil)))
-		    ((null line))
-		  (when (equal line "SUBMITTING UPDATES")
-		    (dotimes (i 3)
-		      (back-line stream))
-		    (return (file-position stream)))))))))
+(define-file-method data-end data-end
+    "Returns the offset after the last record."
+  (file-position stream (- (get-file-length actors) 100000))
+  (do ((line (read-line stream nil) (read-line stream nil)))
+      ((null line))
+    (when (equal line "SUBMITTING UPDATES")
+      (dotimes (i 3)
+	(back-line stream))
+      (return (file-position stream)))))
 
 (defmethod read-until-record ((actors actors) stream)
   "Advances the stream to the next record and returns the next record's actor."
