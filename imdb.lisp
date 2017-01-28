@@ -46,7 +46,6 @@
       (dotimes (i 4)
 	(read-line stream nil))
       (return (file-position stream)))))
-
 (define-file-method data-end data-end
     "Returns the offset after the last record."
   (file-position stream (- (get-file-length actors) 100000))
@@ -75,6 +74,8 @@
 
 (defmethod read-record ((actors actors) stream)
   "Advances the stream to the next record and returns the current record."
+  (when (> (file-position stream) (data-end actors))
+    (return-from read-record nil))
   (let ((record ""))
     (do ((line (read-line stream nil) (read-line stream nil))
 	 (i 0 (1+ i)))
@@ -104,6 +105,28 @@
 		   (binary-search new-min new-max)))))
       (file-position stream (data-start actors))
       (binary-search (data-start actors) (data-end actors)))))
+
+(defmethod inverse-search ((actors actors) movie)
+  "Returns actors matching a specified movie."
+  (let ((results nil))
+    (with-open-file (stream (file-name actors))
+      (file-position stream (data-start actors))
+      (let ((current-actor "") (current-entry ""))
+	(do ((line (read-line stream nil) (read-line stream nil))
+	     (i 0 (1+ i)))
+	    ((> (file-position stream) (data-end actors)))
+	  (when (= (mod i 1000000) 0)
+	    (format t "~a~%" (floor (floor (file-position stream) 1024) 1024)))
+	  (when (> (length line) 0)
+	    (setf current-entry line)
+	    (when (char/= (aref line 0) #\Tab)
+	      (let ((tab-pos (position #\Tab line)))
+		(setf current-actor (subseq line 0 tab-pos))
+		(setf current-entry (subseq line tab-pos))))
+	    (setf current-entry (string-left-trim (list #\Tab) current-entry))
+	    (when (search movie current-entry)
+	      (push current-actor results))))))
+    results))
 
 (defvar *actors* (make-instance 'actors :file-name "~/graph/imdb/actors.list"))
 (defvar *actresses* (make-instance 'actors :file-name "~/graph/imdb/actresses.list"))
