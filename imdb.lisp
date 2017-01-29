@@ -119,13 +119,17 @@
   "Outputs information about the search progress."
   (when (= (mod i 1000000) 0)
     (let* ((div (* 1024 1024))
-	  (now (floor pos div))
-	  (total (floor (- (data-end actors) (data-start actors)) div)))
+	   (now (floor pos div))
+	   (total (floor (- (data-end actors) (data-start actors)) div)))
       (format t "Searching ~a ... ~3d MB / ~3d MB~%" (file-name actors) now total))))
 
 (defmethod inverse-search ((actors actors) movie)
   "Returns actors matching a specified movie."
-  (let ((results nil))
+  (gethash movie (inverse-search actors (list movie))))
+
+(defmethod inverse-search ((actors actors) (movies cons))
+  "Returns actors matching the specified movies."
+  (let ((results (make-hash-table :test 'equal)))
     (with-open-file (stream (file-name actors))
       (file-position stream (data-start actors))
       (let ((current-actor "") (current-entry ""))
@@ -138,8 +142,9 @@
 		(setf current-actor (subseq line 0 tab-pos))
 		(setf current-entry (subseq line tab-pos))))
 	    (setf current-entry (string-left-trim (list #\Tab) current-entry))
-	    (when (search movie current-entry)
-	      (push current-actor results))))))
+	    (loop for movie in movies do
+		 (when (search movie current-entry)
+		   (push current-actor (gethash movie results))))))))
     results))
 
 (defvar *actors* (make-instance 'actors :file-name "~/graph/imdb/actors.list"))
