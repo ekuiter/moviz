@@ -26,35 +26,47 @@
 
 ;;; Methods
 
-(defmacro define-file-method (name slot documentation &body body)
+(defmacro define-lazy-slot (name slot documentation &body body)
   `(defmethod ,name ((actors actors))
      ,documentation
      (with-slots (file-name ,slot) actors
        (or ,slot (setf ,slot (with-open-file (stream file-name) ,@body))))))
 
+(defmacro do-lines (stream var-init-steps end-test &body body)
+  `(do ((line (read-line ,stream nil) (read-line ,stream nil)) ,@var-init-steps)
+       (,end-test)
+     ,@body))
+
 ;;; @TODO: own package for file-length, search
-(define-file-method get-file-length file-length
+(define-lazy-slot get-file-length file-length
     "Returns the file length."
   (file-length stream))
 
-(define-file-method data-start data-start
+(define-lazy-slot data-start data-start
     "Returns the offset of the first record."
-  (do ((line (read-line stream nil) (read-line stream nil)))
-      ((null line))
+  (do-lines stream () (null line)
     (when (or (equal line "THE ACTRESSES LIST")
 	      (equal line "THE ACTORS LIST"))
       (dotimes (i 4)
 	(read-line stream nil))
       (return (file-position stream)))))
-(define-file-method data-end data-end
+
+(define-lazy-slot data-end data-end
     "Returns the offset after the last record."
   (file-position stream (- (get-file-length actors) 100000))
-  (do ((line (read-line stream nil) (read-line stream nil)))
-      ((null line))
+  (do-lines stream () (null line)
     (when (equal line "SUBMITTING UPDATES")
       (dotimes (i 3)
 	(back-line stream))
       (return (file-position stream)))))
+
+(defun actor-line-p (line)
+  "Returns whether a given line is the start of a record."
+  (and (> (length line) 0) (char/= (aref line 0) #\Tab)))
+
+(defmethod end-of-data-p ((actors actors) pos)
+  "Returns whether the given offset is after the last record."
+  (> pos (data-end actors)))
 
 (defmethod read-until-record ((actors actors) stream)
   "Advances the stream to the next record and returns the next record's actor."
@@ -62,25 +74,22 @@
   (unless (char= (read-char stream) #\Newline)
     (read-line stream nil))
   (let ((begin-of-line (file-position stream)))
-    (do ((line (read-line stream nil) (read-line stream nil)))
-	((null line))
-      (when (and (> (length line) 0) (char/= (aref line 0) #\Tab))
+    (do-lines stream () (null line)
+      (when (actor-line-p line)
 	(file-position stream begin-of-line)
 	(return-from read-until-record
-	  (if (<= begin-of-line (data-end actors))
-	      (subseq line 0 (position #\Tab line))
-	      nil)))
+	  (if (end-of-data-p actors begin-of-line)
+	      nil
+	      (subseq line 0 (position #\Tab line)))))
       (setf begin-of-line (file-position stream)))))
 
 (defmethod read-record ((actors actors) stream)
   "Advances the stream to the next record and returns the current record."
-  (when (> (file-position stream) (data-end actors))
+  (when (end-of-data-p actors (file-position stream))
     (return-from read-record nil))
   (let ((record ""))
-    (do ((line (read-line stream nil) (read-line stream nil))
-	 (i 0 (1+ i)))
-	(nil)
-      (when (and (> i 0) (> (length line) 0) (char/= (aref line 0) #\Tab))
+    (do-lines stream ((i 0 (1+ i))) nil
+      (when (and (> i 0) (actor-line-p line))
 	(back-line stream)
 	(return-from read-record record))
       (setf record (concatenate 'string record line)))))
@@ -106,20 +115,25 @@
       (file-position stream (data-start actors))
       (binary-search (data-start actors) (data-end actors)))))
 
+(defmethod report-progress ((actors actors) pos i)
+  "Outputs information about the search progress."
+  (when (= (mod i 1000000) 0)
+    (let* ((div (* 1024 1024))
+	  (now (floor pos div))
+	  (total (floor (- (data-end actors) (data-start actors)) div)))
+      (format t "Searching ~a ... ~3d MB / ~3d MB~%" (file-name actors) now total))))
+
 (defmethod inverse-search ((actors actors) movie)
   "Returns actors matching a specified movie."
   (let ((results nil))
     (with-open-file (stream (file-name actors))
       (file-position stream (data-start actors))
       (let ((current-actor "") (current-entry ""))
-	(do ((line (read-line stream nil) (read-line stream nil))
-	     (i 0 (1+ i)))
-	    ((> (file-position stream) (data-end actors)))
-	  (when (= (mod i 1000000) 0)
-	    (format t "~a~%" (floor (floor (file-position stream) 1024) 1024)))
+	(do-lines stream ((i 0 (1+ i))) (end-of-data-p actors (file-position stream))
+	  (report-progress actors (file-position stream) i)
 	  (when (> (length line) 0)
 	    (setf current-entry line)
-	    (when (char/= (aref line 0) #\Tab)
+	    (when (actor-line-p line)
 	      (let ((tab-pos (position #\Tab line)))
 		(setf current-actor (subseq line 0 tab-pos))
 		(setf current-entry (subseq line tab-pos))))
