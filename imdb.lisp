@@ -60,6 +60,10 @@
 	(back-line stream))
       (return (file-position stream)))))
 
+(defmethod data-length ((actors actors))
+  "Returns the data length."
+  (- (data-end actors) (data-start actors)))
+
 (defun actor-line-p (line)
   "Returns whether a given line is the start of a record."
   (and (> (length line) 0) (char/= (aref line 0) #\Tab)))
@@ -120,21 +124,29 @@
   (when (= (mod i 1000000) 0)
     (let* ((div (* 1024 1024))
 	   (now (floor pos div))
-	   (total (floor (- (data-end actors) (data-start actors)) div)))
+	   (total (floor (data-length actors) div)))
       (format t "Searching ~a ... ~3d MB / ~3d MB~%" (file-name actors) now total))))
 
-(defmethod inverse-search ((actors actors) movie)
+(defmethod inverse-search ((actors actors) movie &optional (n 1) (i 0))
   "Returns actors matching a specified movie."
-  (gethash movie (inverse-search actors (list movie))))
+  (gethash movie (inverse-search actors (list movie) n i)))
 
-(defmethod inverse-search ((actors actors) (movies cons))
+(defmethod inverse-search ((actors actors) (movies cons) &optional (n 1) (i 0))
   "Returns actors matching the specified movies."
-  (let ((results (make-hash-table :test 'equal)))
+  (let* ((results (make-hash-table :test 'equal))
+	 (partition-step (floor (data-length actors) n))
+	 (partition-start (+ (data-start actors) (* partition-step i)))
+	 (partition-end (if (= i (- n 1))
+			    (data-end actors)
+			    (+ (data-start actors) (* partition-step (1+ i))))))
     (with-open-file (stream (file-name actors))
-      (file-position stream (data-start actors))
+      (file-position stream partition-start)
+      (read-until-record actors stream)
       (let ((current-actor "") (current-entry ""))
 	(do-lines stream ((i 0 (1+ i))) (end-of-data-p actors (file-position stream))
 	  (report-progress actors (file-position stream) i)
+	  (when (and (> (file-position stream) partition-end) (actor-line-p line))
+	    (return))
 	  (when (> (length line) 0)
 	    (setf current-entry line)
 	    (when (actor-line-p line)
