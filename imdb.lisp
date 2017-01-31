@@ -27,12 +27,14 @@
 ;;; Methods
 
 (defmacro define-lazy-slot (name slot documentation &body body)
+  "Defines an accessor that only computes its value once."
   `(defmethod ,name ((actors actors))
      ,documentation
      (with-slots (file-name ,slot) actors
        (or ,slot (setf ,slot (with-open-file (stream file-name) ,@body))))))
 
 (defmacro do-lines (stream var-init-steps end-test &body body)
+  "Iterates over a file line by line."
   `(do ((line (read-line ,stream nil) (read-line ,stream nil)) ,@var-init-steps)
        (,end-test)
      ,@body))
@@ -119,26 +121,32 @@
       (file-position stream (data-start actors))
       (binary-search (data-start actors) (data-end actors)))))
 
+(defun file-size-string (bytes)
+  "Returns a human-readable file size."
+  (format nil "~3d MB" (floor bytes (* 1024 1024))))
+
 (defmethod report-progress ((actors actors) pos i)
   "Outputs information about the search progress."
   (when (= (mod i 1000000) 0)
-    (let* ((div (* 1024 1024))
-	   (now (floor pos div))
-	   (total (floor (data-length actors) div)))
-      (format t "Searching ~a ... ~3d MB / ~3d MB~%" (file-name actors) now total))))
+    (format t "Searching ~a ... ~a / ~a~%" (file-name actors)
+	    (file-size-string pos) (file-size-string (data-length actors)))))
 
-(defmethod inverse-search ((actors actors) movie &optional (n 1) (i 0))
-  "Returns actors matching a specified movie."
-  (gethash movie (inverse-search actors (list movie) n i)))
+(defmethod inverse-search-partition ((actors actors) movie &optional (n 1) (i 0))
+  "Returns actors in a partition matching a specified movie."
+  (gethash movie (inverse-search-partition actors (list movie) n i)))
 
-(defmethod inverse-search ((actors actors) (movies cons) &optional (n 1) (i 0))
-  "Returns actors matching the specified movies."
+(defmethod inverse-search-partition ((actors actors) (movies cons) &optional (n 1) (i 0))
+  "Returns actors in a partition matching the specified movies."
+  (when (< n 1) (error "at least one partition needed"))
+  (when (or (< i 0) (>= i n)) (error "illegal partition index"))
   (let* ((results (make-hash-table :test 'equal))
 	 (partition-step (floor (data-length actors) n))
 	 (partition-start (+ (data-start actors) (* partition-step i)))
 	 (partition-end (if (= i (- n 1))
 			    (data-end actors)
 			    (+ (data-start actors) (* partition-step (1+ i))))))
+    (format t "Searching partition ~a of ~a with length ~a.~%"
+	    (1+ i) n (file-size-string partition-step))
     (with-open-file (stream (file-name actors))
       (file-position stream partition-start)
       (read-until-record actors stream)
@@ -159,5 +167,25 @@
 		   (push current-actor (gethash movie results))))))))
     results))
 
+(defmethod inverse-search ((actors actors) movie &optional (n 4))
+  "Returns actors matching a specified movie."
+  (gethash movie (inverse-search actors (list movie) n)))
+
+(defmethod inverse-search ((actors actors) (movies cons) &optional (n 4))
+  "Returns actors matching the specified movies."
+  (labels ((fn (stream i)
+	     (let ((*terminal-io* stream))
+	       (inverse-search-partition actors movies n i))))
+    (let ((results (make-hash-table :test 'equal))
+	  (processes
+	   (loop for i from 0 to (- n 1) collect
+		(ccl:process-run-function "inverse-search" #'fn *terminal-io* i))))
+      (loop for process in processes do
+	   (let ((process-results (ccl:join-process process)))
+	     (loop for movie in movies do
+		  (setf (gethash movie results)
+			(append (gethash movie results) (gethash movie process-results))))))
+      results)))
+	    
 (defvar *actors* (make-instance 'actors :file-name "~/graph/imdb/actors.list"))
 (defvar *actresses* (make-instance 'actors :file-name "~/graph/imdb/actresses.list"))
