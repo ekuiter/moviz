@@ -125,17 +125,8 @@
   "Returns a human-readable file size."
   (format nil "~3d MB" (floor bytes (* 1024 1024))))
 
-(defmethod report-progress ((actors actors) pos i)
-  "Outputs information about the search progress."
-  (when (= (mod i 1000000) 0)
-    (format t "Searching ~a ... ~a / ~a~%" (file-name actors)
-	    (file-size-string pos) (file-size-string (data-length actors)))))
-
-(defmethod inverse-search-partition ((actors actors) movie &optional (n 1) (i 0))
-  "Returns actors in a partition matching a specified movie."
-  (gethash movie (inverse-search-partition actors (list movie) n i)))
-
-(defmethod inverse-search-partition ((actors actors) (movies cons) &optional (n 1) (i 0))
+(defmethod inverse-search-partition
+    ((actors actors) (movies cons) n i progress progress-changed)
   "Returns actors in a partition matching the specified movies."
   (when (< n 1) (error "at least one partition needed"))
   (when (or (< i 0) (>= i n)) (error "illegal partition index"))
@@ -145,14 +136,14 @@
 	 (partition-end (if (= i (- n 1))
 			    (data-end actors)
 			    (+ (data-start actors) (* partition-step (1+ i))))))
-    (format t "Searching partition ~a of ~a with length ~a.~%"
-	    (1+ i) n (file-size-string partition-step))
     (with-open-file (stream (file-name actors))
       (file-position stream partition-start)
       (read-until-record actors stream)
       (let ((current-actor "") (current-entry ""))
-	(do-lines stream ((i 0 (1+ i))) (end-of-data-p actors (file-position stream))
-	  (report-progress actors (file-position stream) i)
+	(do-lines stream ((lines 0 (1+ lines))) (end-of-data-p actors (file-position stream))
+	  (when (= (mod lines 500000) 0)
+	    (setf (elt progress i) (- (file-position stream) partition-start))
+	    (ccl:signal-semaphore progress-changed))
 	  (when (and (> (file-position stream) partition-end) (actor-line-p line))
 	    (return))
 	  (when (> (length line) 0)
@@ -165,6 +156,8 @@
 	    (loop for movie in movies do
 		 (when (search movie current-entry)
 		   (push current-actor (gethash movie results))))))))
+    (setf (elt progress i) -1)
+    (ccl:signal-semaphore progress-changed)
     results))
 
 (defmethod inverse-search ((actors actors) movie &optional (n 4))
@@ -173,19 +166,26 @@
 
 (defmethod inverse-search ((actors actors) (movies cons) &optional (n 4))
   "Returns actors matching the specified movies."
-  (labels ((fn (stream i)
-	     (let ((*terminal-io* stream))
-	       (inverse-search-partition actors movies n i))))
-    (let ((results (make-hash-table :test 'equal))
-	  (processes
-	   (loop for i from 0 to (- n 1) collect
-		(ccl:process-run-function "inverse-search" #'fn *terminal-io* i))))
+  (labels ((fn (i progress progress-changed)
+	     (inverse-search-partition actors movies n i progress progress-changed)))
+    (let* ((results (make-hash-table :test 'equal))
+	   (progress (make-array n :initial-element 0))
+	   (progress-changed (ccl:make-semaphore))
+	   (processes
+	    (loop for i from 0 to (- n 1) collect
+		 (ccl:process-run-function "inverse-search" #'fn i progress progress-changed))))
+      (loop for i = 0 then (1+ i)
+	 while (>= (loop for i across progress minimize i) 0) do
+	   (when (= (mod i n) (- n 1))
+	     (format t "~2d% " (floor (* (loop for i across progress sum i) 100)
+				     (data-length actors))))
+	   (ccl:wait-on-semaphore progress-changed))
       (loop for process in processes do
 	   (let ((process-results (ccl:join-process process)))
 	     (loop for movie in movies do
 		  (setf (gethash movie results)
 			(append (gethash movie results) (gethash movie process-results))))))
       results)))
-	    
+
 (defvar *actors* (make-instance 'actors :file-name "~/graph/imdb/actors.list"))
 (defvar *actresses* (make-instance 'actors :file-name "~/graph/imdb/actresses.list"))
