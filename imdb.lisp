@@ -48,8 +48,6 @@
 	   :initform nil
 	   :reader number)))
 
-(defclass raw-actor (actor) ())
-
 (defclass movie ()
   ((title :initarg :title
 	  :initform nil
@@ -65,10 +63,11 @@
 
 ;;; Methods
 
-(defmethod initialize-instance :after ((actor actor) &key name raw-name)
+(defmethod initialize-instance :after ((actor actor) &key name)
   "Initializes an actor."
   (when name
-    (destructuring-bind (last-name first-name) (split-sequence:split-sequence #\, name)
+    (destructuring-bind (last-name first-name)
+	(if (find #\, name) (split-sequence:split-sequence #\, name) (list "" name))
       (let ((paren-pos (position #\( first-name)))
 	(setf (slot-value actor 'first-name)
 	      (string-trim " " (subseq first-name 0 paren-pos)))
@@ -76,16 +75,8 @@
 	(when paren-pos
 	  (setf (slot-value actor 'number)
 		(subseq first-name (1+ paren-pos) (position #\) first-name)))))))
-  (unless raw-name
-    (unless (and (first-name actor) (last-name actor))
-      (error "Must supply name"))))
-
-(defmethod initialize-instance :after ((actor raw-actor) &key raw-name)
-  "Initializes an actor with a raw name."
-  (unless raw-name
-    (error "Must supply name"))
-  (setf (slot-value actor 'first-name) "")
-  (setf (slot-value actor 'last-name) raw-name))
+  (unless (and (first-name actor) (last-name actor))
+    (error "Must supply name")))
 
 (defmethod print-object ((actor actor) stream)
   "Prints an actor."
@@ -94,11 +85,14 @@
 
 (defmethod name ((actor actor))
   "Returns an actor's name as used in an actors file."
-  (format nil "~a, ~a~@[ (~a)~]" (last-name actor) (first-name actor) (number actor)))
+  (let ((last-name (unless (equal (last-name actor) "") (last-name actor))))
+    (format nil "~@[~a, ~]~a~@[ (~a)~]" last-name (first-name actor) (number actor))))
 
-(defmethod name ((actor raw-actor))
-  "Returns a raw actor's name."
-  (last-name actor))
+(defmethod actor= ((actor-1 actor) (actor-2 actor))
+  "Tests whether two actors are equal."
+  (and (equal (first-name actor-1) (first-name actor-2))
+       (equal (last-name actor-1) (last-name actor-2))
+       (equal (number actor-1) (number actor-2))))
 
 (defun line-to-movie-title (line)
   "Extracts a movie's title from an actor file line."
@@ -170,6 +164,12 @@
 	      (subseq line 0 (position #\Tab line)))))
       (setf begin-of-line (file-position stream)))))
 
+(defun delete-duplicates-in-sorted-list (list &key (test #'eql))
+  "Deletes all duplicates in a sorted list (more efficient than delete-duplicates)."
+  (mapcon (lambda (cell)
+	    (when (or (null (cdr cell)) (not (funcall test (car cell) (cadr cell))))
+	      (list (car cell)))) list))
+
 (defmethod read-record ((actors actors) stream)
   "Advances the stream to the next record and returns the current record."
   (when (end-of-data-p actors (file-position stream))
@@ -183,9 +183,7 @@
       (setf record (concatenate 'string record line)))
     (setf record (mapcar (lambda (line) (make-instance 'movie :line line))
 			 (split-sequence:split-sequence #\Tab record :remove-empty-subseqs t)))
-    (mapcon (lambda (cell)
-	       (when (or (null (cdr cell)) (not (movie= (car cell) (cadr cell))))
-		 (list (car cell)))) record)))
+    (delete-duplicates-in-sorted-list record :test #'movie=)))
 
 (defmethod do-search ((actors actors) (actor actor))
   "Returns the record for a specified actor."
@@ -224,30 +222,34 @@
 	 (partition-end (if (= i (- n 1))
 			    (data-end actors)
 			    (+ (data-start actors) (* partition-step (1+ i))))))
-    (with-open-actors-file actors
-      (file-position stream partition-start)
-      (read-until-record actors stream)
-      (let ((current-actor "") (current-entry ""))
-	(do-lines stream ((lines 0 (1+ lines))) (end-of-data-p actors (file-position stream))
-	  (when (= (mod lines 500000) 0)
-	    (setf (elt progress i) (- (file-position stream) partition-start))
-	    (ccl:signal-semaphore progress-changed))
-	  (when (and (> (file-position stream) partition-end) (actor-line-p line))
-	    (return))
-	  (when (> (length line) 0)
-	    (setf current-entry line)
-	    (when (actor-line-p line)
-	      (let ((tab-pos (position #\Tab line)))
-		(setf current-actor (subseq line 0 tab-pos))
-		(setf current-entry (subseq line tab-pos))))
-	    (setf current-entry (string-left-trim (list #\Tab) current-entry))
-	    (loop for movie in movies do
-		 (when (eql (search (title movie) (string-left-trim "\"" current-entry)) 0)
-		   (push (make-instance 'actor :name current-actor)
-			 (gethash movie results))))))))
-    (setf (elt progress i) -1)
-    (ccl:signal-semaphore progress-changed)
-    results))
+    (labels ((change-progress (new-progress)
+	       (setf (elt progress i) new-progress)
+	       (ccl:signal-semaphore progress-changed)))
+      (with-open-actors-file actors
+	(file-position stream partition-start)
+	(read-until-record actors stream)
+	(let ((current-actor "") (current-entry ""))
+	  (do-lines stream ((lines 0 (1+ lines))) (end-of-data-p actors (file-position stream))
+	    (when (= (mod lines 500000) 0)
+	      (change-progress (- (file-position stream) partition-start)))
+	    (when (and (> (file-position stream) partition-end) (actor-line-p line))
+	      (return))
+	    (when (> (length line) 0)
+	      (setf current-entry line)
+	      (when (actor-line-p line)
+		(let ((tab-pos (position #\Tab line)))
+		  (setf current-actor (subseq line 0 tab-pos))
+		  (setf current-entry (subseq line tab-pos))))
+	      (setf current-entry (string-left-trim (list #\Tab) current-entry))
+	      (loop for movie in movies do
+		   (when (eql (search (title movie) (string-left-trim "\"" current-entry)) 0)
+		     (push (make-instance 'actor :name current-actor)
+			   (gethash movie results))))))))
+      (change-progress -1))
+    (loop for movie in movies do
+	 (setf (gethash movie results)
+	       (delete-duplicates-in-sorted-list (gethash movie results) :test #'actor=))
+       finally (return results))))
 
 (defmethod inverse-search ((actors actors) movie &optional (n 4))
   "Returns actors matching a specified movie."
