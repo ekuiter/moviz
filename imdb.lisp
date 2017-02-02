@@ -1,3 +1,5 @@
+(ql:quickload "split-sequence")
+
 ;;; Helpers
 
 (defun back-char (stream)
@@ -14,7 +16,36 @@
 	((char= ch #\Newline))))
   (read-char stream nil))
 
+(defmacro define-lazy-slot (name slot documentation &body body)
+  "Defines an accessor that only computes its value only once."
+  `(defmethod ,name ((actors actors))
+     ,documentation
+     (with-slots (file-name ,slot) actors
+       (or ,slot (setf ,slot (with-open-file (stream file-name) ,@body))))))
+
+(defmacro do-lines (stream var-init-steps end-test &body body)
+  "Iterates over a file line by line."
+  `(do ((line (read-line ,stream nil) (read-line ,stream nil)) ,@var-init-steps)
+       (,end-test)
+     ,@body))
+
 ;;; Classes
+
+(defclass actor ()
+  ((first-name :initarg :first-name
+	       :initform nil
+	       :reader first-name)
+   (last-name :initarg :last-name
+	      :initform nil
+	      :reader last-name)
+   (number :initarg :number
+	   :initform nil
+	   :reader number)))
+
+(defclass movie ()
+  ((title :initarg :title
+	  :initform (error "Must supply title")
+	  :reader title)))
 
 (defclass actors ()
   ((file-name :initarg :file-name
@@ -26,18 +57,25 @@
 
 ;;; Methods
 
-(defmacro define-lazy-slot (name slot documentation &body body)
-  "Defines an accessor that only computes its value once."
-  `(defmethod ,name ((actors actors))
-     ,documentation
-     (with-slots (file-name ,slot) actors
-       (or ,slot (setf ,slot (with-open-file (stream file-name) ,@body))))))
+(defmethod initialize-instance :after ((actor actor) &key name)
+  (when name
+    (destructuring-bind (last-name first-name) (split-sequence:split-sequence #\, name)
+      (let ((paren-pos (position #\( first-name)))
+	(setf (slot-value actor 'first-name)
+	      (string-trim " " (subseq first-name 0 paren-pos)))
+	(setf (slot-value actor 'last-name) last-name)
+	(when paren-pos
+	  (setf (slot-value actor 'number)
+		(subseq first-name (1+ paren-pos) (position #\) first-name)))))))
+  (unless (and (first-name actor) (last-name actor))
+    (error "Must supply name")))
 
-(defmacro do-lines (stream var-init-steps end-test &body body)
-  "Iterates over a file line by line."
-  `(do ((line (read-line ,stream nil) (read-line ,stream nil)) ,@var-init-steps)
-       (,end-test)
-     ,@body))
+(defmethod print-object ((actor actor) stream)
+  (print-unreadable-object (actor stream :type t)
+    (format stream "~a" (name actor))))
+
+(defmethod name ((actor actor))
+  (format nil "~a, ~a~@[ (~a)~]" (last-name actor) (first-name actor) (number actor)))
 
 ;;; @TODO: own package for file-length, search
 (define-lazy-slot get-file-length file-length
@@ -100,26 +138,27 @@
 	(return-from read-record record))
       (setf record (concatenate 'string record line)))))
 
-(defmethod do-search ((actors actors) actor)
+(defmethod do-search ((actors actors) (actor actor))
   "Returns the record for a specified actor."
   (with-open-file (stream (file-name actors))
-    (labels ((binary-search (min max)
-	       (when (> min max)
-		 (return-from binary-search nil))
-	       (let ((mid (floor (+ min max) 2)))
-		 (file-position stream mid)
-		 (let* ((current-actor (read-until-record actors stream))
-			(less (string<= actor current-actor))
-			(new-min (if less min mid))
-			(new-max (if less mid max)))
-		   (when (and (= min new-min) (= max new-max))
-		     (return-from binary-search nil))
-		   (when (equal actor current-actor)
-		     (return-from binary-search (read-record actors stream)))
-		   (file-position stream new-min)
-		   (binary-search new-min new-max)))))
-      (file-position stream (data-start actors))
-      (binary-search (data-start actors) (data-end actors)))))
+    (let ((actor-name (name actor)))
+      (labels ((binary-search (min max)
+		 (when (> min max)
+		   (return-from binary-search nil))
+		 (let ((mid (floor (+ min max) 2)))
+		   (file-position stream mid)
+		   (let* ((current-actor (read-until-record actors stream))
+			  (less (string<= actor-name current-actor))
+			  (new-min (if less min mid))
+			  (new-max (if less mid max)))
+		     (when (and (= min new-min) (= max new-max))
+		       (return-from binary-search nil))
+		     (when (equal actor-name current-actor)
+		       (return-from binary-search (read-record actors stream)))
+		     (file-position stream new-min)
+		     (binary-search new-min new-max)))))
+	(file-position stream (data-start actors))
+	(binary-search (data-start actors) (data-end actors))))))
 
 (defun file-size-string (bytes)
   "Returns a human-readable file size."
@@ -155,7 +194,8 @@
 	    (setf current-entry (string-left-trim (list #\Tab) current-entry))
 	    (loop for movie in movies do
 		 (when (search movie current-entry)
-		   (push current-actor (gethash movie results))))))))
+		   (push (make-instance 'actor :name current-actor)
+			 (gethash movie results))))))))
     (setf (elt progress i) -1)
     (ccl:signal-semaphore progress-changed)
     results))
@@ -178,7 +218,7 @@
 	 while (>= (loop for i across progress minimize i) 0) do
 	   (when (= (mod i n) (- n 1))
 	     (format t "~2d% " (floor (* (loop for i across progress sum i) 100)
-				     (data-length actors))))
+				      (data-length actors))))
 	   (ccl:wait-on-semaphore progress-changed))
       (loop for process in processes do
 	   (let ((process-results (ccl:join-process process)))
