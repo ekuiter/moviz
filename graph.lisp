@@ -8,9 +8,9 @@
         ((atom l) (list l))
         (t (loop for a in l appending (flatten a)))))
 
-(defun run (command &key (wait t) (input nil))
+(defun run (command &key (wait t) (input nil) (output nil))
   (let ((shell-command (concatenate 'string "cd " *directory* ";" command)))
-    (ccl:run-program "sh" (list "-c" shell-command) :wait wait :input input)))
+    (ccl:run-program "sh" (list "-c" shell-command) :wait wait :input input :output output)))
 
 ;;; Classes
 
@@ -82,9 +82,19 @@
     (close stream)
     (loop while (equal (ccl:external-process-status process) :running))))
 
-(defmethod open-png ((graph graph))
-  (make-png graph "graph.png")
-  (run "open graph.png"))
+;;; SLIME: insert the following to ~/.emacs
+;;; (setq slime-enable-evaluate-in-emacs t)
+;;; (eval-after-load "slime"
+;;;   '(progn (slime-setup '(slime-media))))
+;;; iTerm2: https://raw.githubusercontent.com/gnachman/iTerm2/master/tests/imgcat
+
+(defmethod show ((graph graph))
+  (let ((file-name (concatenate 'string *directory* "/graph.png")))
+    (make-png graph file-name)
+    #+:swank (swank:eval-in-emacs
+	      `(slime-media-insert-image (create-image ,file-name) ,file-name))
+    #-:swank (run (concatenate 'string "imgcat " file-name) :output t))
+  nil)
 
 ;;; Node methods
 
@@ -161,4 +171,4 @@
     graph))
 
 (defun main ()
-  (open-png (example-graph)))
+  (show (example-graph)))
