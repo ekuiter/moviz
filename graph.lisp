@@ -1,5 +1,6 @@
-(defparameter *directory* "~/graph")
-(defparameter *dot-command* "/usr/local/bin/dot")
+(in-package :graph)
+
+(defparameter +dot-command+ "/usr/local/bin/dot")
 
 ;;; Helpers
 
@@ -9,7 +10,8 @@
         (t (loop for a in l appending (flatten a)))))
 
 (defun run (command &key (wait t) (input nil) (output nil))
-  (let ((shell-command (concatenate 'string "cd " *directory* ";" command)))
+  (let ((shell-command (concatenate 'string "cd "
+				    (namestring (ccl:current-directory)) ";" command)))
     (ccl:run-program "sh" (list "-c" shell-command) :wait wait :input input :output output)))
 
 ;;; Classes
@@ -28,16 +30,6 @@
    (node-2 :initarg :node-2
 	   :initform (error "must supply node 2")
 	   :reader node-2)))
-
-(defclass series-node (node)
-  ((title :initarg :title
-	  :initform (error "must supply title")
-	  :reader title)))
-
-(defclass actor-edge (edge)
-  ((actor :initarg :actor
-	  :initform (error "must supply actor")
-	  :reader actor)))
 
 (defgeneric compare (node-1 node-2))
 (defgeneric label (object))
@@ -74,8 +66,8 @@
 	       (label (node-1 edge)) (label (node-2 edge)) (label edge)))
   (format stream "}"))
 
-(defmethod make-png ((graph graph) filename)
-  (let* ((process (run (concatenate 'string *dot-command* " -Tpng -o " filename)
+(defmethod make-png ((graph graph) file-name)
+  (let* ((process (run (concatenate 'string +dot-command+ " -Tpng -o " file-name)
 		       :wait nil :input :stream))
 	 (stream (ccl:external-process-input-stream process)))
     (to-dot graph :stream stream)
@@ -88,12 +80,21 @@
 ;;;   '(progn (slime-setup '(slime-media))))
 ;;; iTerm2: https://raw.githubusercontent.com/gnachman/iTerm2/master/tests/imgcat
 
-(defmethod show ((graph graph))
-  (let ((file-name (concatenate 'string *directory* "/graph.png")))
+(defun temporary-file-name (prefix)
+  #+swank (swank:eval-in-emacs `(make-temp-name (concat temporary-file-directory ,prefix)))
+  #-swank (concatenate 'string prefix ".png"))
+
+(defmethod show ((graph graph) &key open)
+  (let ((file-name (temporary-file-name "graph")))
     (make-png graph file-name)
-    #+:swank (swank:eval-in-emacs
-	      `(slime-media-insert-image (create-image ,file-name) ,file-name))
-    #-:swank (run (concatenate 'string "imgcat " file-name) :output t))
+    (when open
+      (run (concatenate 'string "open " file-name)))
+    (unless open
+      #+:swank (swank:eval-in-emacs
+		`(slime-media-insert-image (create-image ,file-name) ,file-name))
+      #-:swank (run (concatenate 'string "imgcat " file-name) :output t)
+      #+:swank (swank:eval-in-emacs `(delete-file ,file-name))
+      #-:swank (delete-file file-name)))
   nil)
 
 ;;; Node methods
@@ -130,45 +131,3 @@
 
 (defmethod label ((edge edge))
   nil)
-
-;;; Series node methods
-
-(defmethod compare ((node-1 series-node) (node-2 series-node))
-  (string<= (title node-1) (title node-2)))
-
-(defmethod label ((node series-node))
-  (title node))
-
-;;; Actor edge methods
-
-(defmethod label ((edge actor-edge))
-  (actor edge))
-
-;;; Main example
-
-(defun example-graph ()
-  (let* ((graph (make-instance 'graph))
-	 (person-of-interest (make-instance 'series-node :title "Person of Interest"))
-	 (supernatural (make-instance 'series-node :title "Supernatural"))
-	 (house-of-cards (make-instance 'series-node :title "House of Cards"))
-	 (mr-robot (make-instance 'series-node :title "Mr. Robot"))
-	 (westworld (make-instance 'series-node :title "Westworld")))
-    (add-node graph (make-instance 'series-node :title "Sherlock"))
-    (add-edge graph (make-instance 'actor-edge :node-1 person-of-interest
-				   :node-2 supernatural :actor "Mark Pellegrino"))
-    (add-edge graph (make-instance 'actor-edge :node-1 person-of-interest
-				   :node-2 westworld :actor "Jimmi Simpson"))
-    (add-edge graph (make-instance 'actor-edge :node-1 person-of-interest
-				   :node-2 house-of-cards :actor "Jimmi Simpson"))
-    (add-edge graph (make-instance 'actor-edge :node-1 westworld
-				   :node-2 house-of-cards :actor "Jimmi Simpson"))
-    (add-edge graph (make-instance 'actor-edge :node-1 person-of-interest
-				   :node-2 mr-robot :actor "Michel Gill"))
-    (add-edge graph (make-instance 'actor-edge :node-1 house-of-cards
-				   :node-2 mr-robot :actor "Michel Gill"))
-    (add-edge graph (make-instance 'actor-edge :node-1 person-of-interest
-				   :node-2 house-of-cards :actor "Michel Gill"))
-    graph))
-
-(defun main ()
-  (show (example-graph)))
