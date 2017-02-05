@@ -129,7 +129,7 @@
     "Returns the offset of the first record."
   (do-lines stream () (null line)
     (when (or (equal line "THE ACTRESSES LIST")
-	      (equal line "THE ACTOR-LIST LIST"))
+	      (equal line "THE ACTORS LIST"))
       (dotimes (i 4)
 	(read-line stream nil))
       (return (file-position stream)))))
@@ -219,7 +219,7 @@
 
 (defmethod inverse-search-partition
     ((actor-list actor-list) (movies cons) n i progress progress-changed)
-  "Returns actor-list in a partition matching the specified movies."
+  "Returns actors in a partition matching the specified movies."
   (when (< n 1) (error "at least one partition needed"))
   (when (or (< i 0) (>= i n)) (error "illegal partition index"))
   (let* ((results (make-hash-table :test 'equal))
@@ -259,11 +259,11 @@
        finally (return results))))
 
 (defmethod inverse-search ((actor-list actor-list) movie &optional (n 4))
-  "Returns actor-list matching a specified movie."
+  "Returns actors matching a specified movie."
   (gethash movie (inverse-search actor-list (list movie) n)))
 
 (defmethod inverse-search ((actor-list actor-list) (movies cons) &optional (n 4))
-  "Returns actor-list matching the specified movies."
+  "Returns actors matching the specified movies."
   (labels ((fn (i progress progress-changed)
 	     (inverse-search-partition actor-list movies n i progress progress-changed)))
     (let* ((results (make-hash-table :test 'eq))
