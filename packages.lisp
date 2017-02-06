@@ -29,6 +29,6 @@
   (:use :common-lisp :actor-list :graph)
   (:export :main))
 
-(load "~/graph/actor-list")
-(load "~/graph/graph")
-(load "~/graph/main")
+(load "actor-list")
+(load "graph")
+(load "main")
