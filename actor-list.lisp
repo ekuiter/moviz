@@ -61,7 +61,9 @@
 	      :reader file-name)
    (file-length :initform nil)
    (data-start :initform nil)
-   (data-end :initform nil)))
+   (data-end :initform nil)
+   (notice-shown :initform nil
+		 :allocation :class)))
 
 ;;; Methods
 
@@ -124,6 +126,11 @@
   "Initializes an actor list."
   (unless (probe-file (file-name actor-list))
     (error "actor list file not found. check (ccl:current-directory)")))
+
+(defmethod show-notice ((actor-list actor-list))
+  (unless (slot-value actor-list 'notice-shown)
+    (format t "Information courtesy of IMDb (http://www.imdb.com). Used with permission.~%")
+    (setf (slot-value actor-list 'notice-shown) t)))
 
 (define-lazy-slot file-length
     "Returns the file length."
@@ -197,6 +204,7 @@
 
 (defmethod do-search ((actor-list actor-list) (actor actor))
   "Returns the record for a specified actor."
+  (show-notice actor-list)
   (with-open-actor-list actor-list
     (let ((actor-name (name actor)))
       (labels ((binary-search (min max)
@@ -270,6 +278,7 @@
 (defmethod inverse-search ((actor-list actor-list) (movies cons) &optional (n 4))
   "Returns actors matching the specified movies."
   (assert movies)
+  (show-notice actor-list)
   (format t "Inverse searching ~a for ~r movie~:*~p ...~%"
 	  (file-name actor-list) (length movies))
   (labels ((fn (i progress progress-changed)

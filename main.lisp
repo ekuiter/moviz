@@ -59,6 +59,7 @@
 	   (funcall accessor node-1) (funcall accessor node-2)))
 
 (defun load-nodes (&rest nodes)
+  (assert nodes)
   (when (= (length nodes) 1)
     (actors (first nodes)) (actresses (first nodes)) (return-from load-nodes))
   (funcall #'actors nodes)
@@ -92,7 +93,10 @@
 (defun clear-graph ()
   (setf *graph* (make-instance 'movie-graph)))
 
-(defun example-graph ()
-  (add-nodes *graph*
-	     (make-instance 'movie-node :title "Harry Potter and the Chamber of Secrets")
-	     (make-instance 'movie-node :title "Harry Potter and the Prisoner of Azkaban")))
+(defun add-movies (&rest movies)
+  (apply #'add-nodes
+	 (append (list *graph*)
+		 (mapcar (lambda (movie) (make-instance 'movie-node :title movie)) movies))))
+
+(defun save-and-quit (file-name)
+  (ccl:save-application file-name :prepend-kernel t))
