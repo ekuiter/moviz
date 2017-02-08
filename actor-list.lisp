@@ -96,6 +96,10 @@
        (equal (last-name actor-1) (last-name actor-2))
        (equal (number actor-1) (number actor-2))))
 
+(defmethod actor< ((actor-1 actor) (actor-2 actor))
+  "Tests whether an actor is less than another."
+  (string-lessp (name actor-1) (name actor-2)))
+
 (defun line-to-movie-title (line)
   "Extracts a movie's title from an actor file line."
   (cl-ppcre:register-groups-bind (title) ("\"?(.*?)\"? \\([\\d?]{4}" line) title))
@@ -255,7 +259,8 @@
       (change-progress -1))
     (loop for movie in movies do
 	 (setf (gethash movie results)
-	       (delete-duplicates-in-sorted-list (gethash movie results) :test #'actor=))
+	       (nreverse (delete-duplicates-in-sorted-list (gethash movie results)
+							   :test #'actor=)))
        finally (return results))))
 
 (defmethod inverse-search ((actor-list actor-list) movie &optional (n 4))
@@ -264,6 +269,9 @@
 
 (defmethod inverse-search ((actor-list actor-list) (movies cons) &optional (n 4))
   "Returns actors matching the specified movies."
+  (assert movies)
+  (format t "Inverse searching ~a for ~r movie~:*~p ...~%"
+	  (file-name actor-list) (length movies))
   (labels ((fn (i progress progress-changed)
 	     (inverse-search-partition actor-list movies n i progress progress-changed)))
     (let* ((results (make-hash-table :test 'eq))
@@ -278,6 +286,7 @@
 	     (format t "~2d% " (floor (* (loop for i across progress sum i) 100)
 				      (data-length actor-list))))
 	   (ccl:wait-on-semaphore progress-changed))
+      (format t "~&")
       (loop for process in processes do
 	   (let ((process-results (ccl:join-process process)))
 	     (loop for movie in movies do
