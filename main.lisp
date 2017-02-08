@@ -1,7 +1,19 @@
 (in-package :main)
 
-(defclass movie-node (node movie) ())
-(defclass actor-edge (edge actor) ())
+(defclass movie-graph (graph) ())
+
+(defclass movie-node (node movie)
+  ((actors :initform nil)
+   (actresses :initform nil)
+   (actor-list :allocation :class
+	       :initform (make-instance 'actor-list :file-name "imdb/actors.list"))
+   (actress-list :allocation :class
+		 :initform (make-instance 'actor-list :file-name "imdb/actresses.list"))))
+
+(defclass actor-edge (edge actor)
+  ((gender :initarg :gender
+	   :initform nil
+	   :reader gender)))
 
 (defmethod compare ((node-1 movie-node) (node-2 movie-node))
   (string<= (title node-1) (title node-2)))
@@ -9,64 +21,78 @@
 (defmethod label ((node movie-node))
   (title node))
 
+(defmethod gender-string ((edge actor-edge))
+  (when (gender edge)
+    (if (eql (gender edge) :male) "♂" "♀")))
+
 (defmethod label ((edge actor-edge))
-  (name edge))
+  (format nil "~@[~a~] ~a" (gender-string edge) (name edge)))
 
-(defun intersect-fn (&key (test #'eql))
-  "Returns a function that intersects two lists."
-  (labels ((intersect (a b)
-	     (cond ((null a) nil)
-		   ((member (car a) b :test test) (cons (car a) (intersect (cdr a) b)))
-		   (t (intersect (cdr a) b)))))
-    #'intersect))
+(defmacro define-lazy-slot (slot class-slot)
+  `(progn (defmethod ,slot ((node movie-node))
+	    (with-slots (,slot ,class-slot) node
+	      (or ,slot
+		  (setf ,slot (inverse-search ,class-slot node)))))
+	  (defmethod ,slot ((nodes cons))
+	    (assert nodes)
+	    (let ((results (inverse-search (slot-value (first nodes) ',class-slot) nodes)))
+	      (loop for node being the hash-keys in results using (hash-value node-results) do
+		   (setf (slot-value node ',slot) node-results)))
+	    nil)))
 
-(defun intersect-many-fn (&key (test #'eql))
-  "Returns a function that intersects any number of lists."
-  (lambda (&rest lists)
-    (reduce (lambda (a b) (funcall (intersect-fn :test test) a b)) lists)))
+(define-lazy-slot actors actor-list)
+(define-lazy-slot actresses actress-list)
 
-(defun intersect-movies (&rest movies)
-  "Returns a list of actors who played in the specified movies."
-  (let* ((actresses (make-instance 'actor-list :file-name "imdb/actresses.list"))
-	 (results (inverse-search actresses movies)))
-    (apply (intersect-many-fn :test #'actor=)
-	   (mapcar (lambda (movie) (gethash movie results)) movies))))
+(defun intersect-sorted-fn (&key (test= #'eql) (test< #'<))
+  "Returns a function that intersects two sorted lists."
+  (macrolet ((advance (x xs)
+	       `(progn (setf ,x (car ,xs)) (setf ,xs (cdr ,xs)))))
+    (lambda (list-a list-b)
+      (loop with (a . as) = list-a and (b . bs) = list-b while (and a b)
+	 if (funcall test= a b) collect a and do (advance a as) (advance b bs)
+	 else if (funcall test< a b) do (advance a as)
+	 else do (advance b bs)))))
 
-(defun intersection-graph (intersection node-1 node-2)
-  (let* ((graph (make-instance 'graph)))
-    (add-node graph node-1)
-    (add-node graph node-2)
-    (loop for actor in intersection do
-	 (add-edge graph (make-instance 'actor-edge :node-1 node-1
-					:node-2 node-2
-					:name (name actor))))
-    graph))
+(defun intersect-movie-nodes (accessor node-1 node-2)
+  "Returns a list of actors or actresses who played in the specified movie nodes."
+  (funcall (intersect-sorted-fn :test= #'actor= :test< #'actor<)
+	   (funcall accessor node-1) (funcall accessor node-2)))
 
-(defun main ()
-  (let ((hp2 (make-instance 'movie-node :title "Harry Potter and the Chamber of Secrets"))
-	(hp3 (make-instance 'movie-node :title "Harry Potter and the Prisoner of Azkaban")))
-    (show (intersection-graph (intersect-movies hp2 hp3) hp2 hp3))))
+(defun load-nodes (&rest nodes)
+  (when (= (length nodes) 1)
+    (actors (first nodes)) (actresses (first nodes)) (return-from load-nodes))
+  (funcall #'actors nodes)
+  (funcall #'actresses nodes)
+  nil)
+
+(defmethod add-node :around ((graph movie-graph) (node-1 movie-node))
+  (load-nodes node-1)
+  (call-next-method)
+  (labels ((add-edges (node-1 node-2 accessor gender)
+	     (loop for actor in (intersect-movie-nodes accessor node-1 node-2) do
+		  (add-edge graph (make-instance 'actor-edge :node-1 node-1 :node-2 node-2
+						 :name (name actor) :gender gender)))))
+    (loop for node-2 in (vertices graph)
+       unless (movie= node-1 node-2) do
+	 (add-edges node-1 node-2 #'actors :male)
+	 (add-edges node-1 node-2 #'actresses :female)))
+  graph)
+
+(defmethod add-nodes ((graph movie-graph) &rest nodes)
+  (apply #'load-nodes nodes)
+  (loop for node in nodes do
+       (add-node graph node))
+  graph)
+
+(defmethod show ((graph movie-graph) &key (open t) (condensed nil))
+  (call-next-method graph :open open :mode :merge :condensed condensed))
+
+(defvar *graph* (make-instance 'movie-graph))
+
+(defun clear-graph ()
+  (setf *graph* (make-instance 'movie-graph)))
 
 (defun example-graph ()
-  (let* ((graph (make-instance 'graph))
-	 (person-of-interest (make-instance 'movie-node :title "Person of Interest"))
-	 (supernatural (make-instance 'movie-node :title "Supernatural"))
-	 (house-of-cards (make-instance 'movie-node :title "House of Cards"))
-	 (mr-robot (make-instance 'movie-node :title "Mr. Robot"))
-	 (westworld (make-instance 'movie-node :title "Westworld")))
-    (add-node graph (make-instance 'movie-node :title "Sherlock"))
-    (add-edge graph (make-instance 'actor-edge :node-1 person-of-interest
-				   :node-2 supernatural :name "Mark Pellegrino"))
-    (add-edge graph (make-instance 'actor-edge :node-1 person-of-interest
-				   :node-2 westworld :name "Jimmi Simpson"))
-    (add-edge graph (make-instance 'actor-edge :node-1 person-of-interest
-				   :node-2 house-of-cards :name "Jimmi Simpson"))
-    (add-edge graph (make-instance 'actor-edge :node-1 westworld
-				   :node-2 house-of-cards :name "Jimmi Simpson"))
-    (add-edge graph (make-instance 'actor-edge :node-1 person-of-interest
-				   :node-2 mr-robot :name "Michel Gill"))
-    (add-edge graph (make-instance 'actor-edge :node-1 house-of-cards
-				   :node-2 mr-robot :name "Michel Gill"))
-    (add-edge graph (make-instance 'actor-edge :node-1 person-of-interest
-				   :node-2 house-of-cards :name "Michel Gill"))
-    graph))
+  (add-nodes *graph*
+	     (make-instance 'movie-node :title "Harry Potter and the Chamber of Secrets")
+	     (make-instance 'movie-node :title "Harry Potter and the Prisoner of Azkaban")))
