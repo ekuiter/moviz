@@ -10,6 +10,7 @@
 	   :name
 	   :title
 	   :actor=
+	   :actor<
 	   :movie=)
   (:shadow :file-length))
 
@@ -20,10 +21,13 @@
 	   :edge
 	   :add-node
 	   :add-edge
+	   :make-image
 	   :show
 	   :to-dot
 	   :compare
-	   :label))
+	   :label
+	   :vertices
+	   :edges))
 
 (defpackage :main
   (:use :common-lisp :actor-list :graph)

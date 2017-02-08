@@ -4,11 +4,6 @@
 
 ;;; Helpers
 
-(defun flatten (l)
-  (cond ((null l) nil)
-        ((atom l) (list l))
-        (t (loop for a in l appending (flatten a)))))
-
 (defun run (command &key (wait t) (input nil) (output nil))
   (let ((shell-command (concatenate 'string "cd "
 				    (namestring (ccl:current-directory)) ";" command)))
@@ -38,12 +33,15 @@
 
 (defmethod print-object ((graph graph) stream)
   (print-unreadable-object (graph stream :type t)
-    (format stream "{~{~a~^, ~}}, {~{~a~^, ~}}"
-	    (slot-value graph 'vertices) (edges graph))))
+    (format stream "{~{~a~^, ~}}, "
+		  (slot-value graph 'vertices))
+    (let ((edges (edges graph)))
+      (if (> (length edges) 30)
+	  (format stream "~a edge~:*~p" (length edges))
+	  (format stream "{~{~a~^, ~}}" (edges graph))))))
 
 (defmethod edges ((graph graph))
-  (flatten (loop for edges being the hash-values in (slot-value graph 'edges)
-	      collecting edges)))
+  (loop for edges being the hash-values in (slot-value graph 'edges) appending edges))
 
 (defmethod add-node ((graph graph) (node node))
   (with-slots (vertices) graph
@@ -53,24 +51,32 @@
 (defmethod add-edge ((graph graph) (edge edge))
   (with-slots (vertices edges) graph
     (with-slots (node-1 node-2) edge
-      (add-node graph node-1)
-      (add-node graph node-2)
+      (unless (find node-1 vertices) (add-node graph node-1))
+      (unless (find node-2 vertices) (add-node graph node-2))
       (push edge (gethash (to-key edge) edges)))))
 
-(defmethod to-dot ((graph graph) &key (stream t))
+(defmethod to-dot ((graph graph) &key (stream t) mode condensed)
   (format stream "graph {~%")
   (loop for node in (vertices graph) do
        (format stream "\"~a\";~%" (label node)))
-  (loop for edge in (edges graph) do
-       (format stream "\"~a\" -- \"~a\" [label=\"~a\"];~%"
-	       (label (node-1 edge)) (label (node-2 edge)) (label edge)))
+  (cond ((eql mode :merge)
+	 (loop for (node-1 node-2) being the hash-keys in (slot-value graph 'edges)
+	    using (hash-value edges) do
+	      (format stream "\"~a\" -- \"~a\" [label=\"~{~a~^~%~}\"];~%"
+		      (label node-1) (label node-2)
+		      (if (and condensed (> (length edges) 10))
+			  (list (format nil "~a actors" (length edges)))
+			  (reverse (mapcar #'label edges))))))
+	(t (loop for edge in (edges graph) do
+		(format stream "\"~a\" -- \"~a\" [label=\"~a\"];~%"
+			(label (node-1 edge)) (label (node-2 edge)) (label edge)))))
   (format stream "}"))
 
-(defmethod make-png ((graph graph) file-name)
-  (let* ((process (run (concatenate 'string +dot-command+ " -Tpng -o " file-name)
+(defmethod make-image ((graph graph) file-name &key (format "png") mode condensed)
+  (let* ((process (run (concatenate 'string +dot-command+ " -T" format " -o " file-name)
 		       :wait nil :input :stream))
 	 (stream (ccl:external-process-input-stream process)))
-    (to-dot graph :stream stream)
+    (to-dot graph :stream stream :mode mode :condensed condensed)
     (close stream)
     (loop while (equal (ccl:external-process-status process) :running))))
 
@@ -80,13 +86,15 @@
 ;;;   '(progn (slime-setup '(slime-media))))
 ;;; iTerm2: https://raw.githubusercontent.com/gnachman/iTerm2/master/tests/imgcat
 
-(defun temporary-file-name (prefix)
-  #+swank (swank:eval-in-emacs `(make-temp-name (concat temporary-file-directory ,prefix)))
-  #-swank (concatenate 'string prefix ".png"))
+(defun temporary-file-name (prefix &key open)
+  (concatenate 'string (if open prefix
+			   #+swank (swank:eval-in-emacs
+				    `(make-temp-name (concat temporary-file-directory ,prefix)))
+			   #-swank prefix) ".png"))
 
-(defmethod show ((graph graph) &key open)
-  (let ((file-name (temporary-file-name "graph")))
-    (make-png graph file-name)
+(defmethod show ((graph graph) &key open mode condensed)
+  (let ((file-name (temporary-file-name "graph" :open open)))
+    (make-image graph file-name :mode mode :condensed condensed)
     (when open
       (run (concatenate 'string "open " file-name)))
     (unless open
@@ -123,7 +131,7 @@
 (defmethod print-object ((edge edge) stream)
   (with-slots (node-1 node-2) edge
     (print-unreadable-object (edge stream :type t)
-      (format stream "~a -- ~a, ~a" node-1 node-2 (label edge)))))
+      (format stream "~a -- ~a (~a)" node-1 node-2 (label edge)))))
 
 (defmethod to-key ((edge edge))
   (with-slots (node-1 node-2) edge
