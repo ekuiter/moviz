@@ -1,9 +1,5 @@
 (in-package :actor-list)
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (ql:quickload :split-sequence)
-  (ql:quickload :cl-ppcre))
-
 ;;; Helpers
 
 (defun back-char (stream)
@@ -52,8 +48,22 @@
 
 (defclass movie ()
   ((title :initarg :title
-	  :initform nil
+	  :initform (error "Must supply title")
 	  :reader title)))
+
+(defclass role ()
+  ((actor :initarg :actor
+	  :initform (error "Must supply actor")
+	  :reader actor)
+   (movie :initarg :movie
+	  :initform nil
+	  :reader movie)
+   (name :initarg :name
+		   :initform nil
+		   :reader name)
+   (billing :initarg :billing
+	    :initform nil
+	    :reader billing)))
 
 (defclass actor-list ()
   ((file-name :initarg :file-name
@@ -102,17 +112,6 @@
   "Tests whether an actor is less than another."
   (string-lessp (name actor-1) (name actor-2)))
 
-(defun line-to-movie-title (line)
-  "Extracts a movie's title from an actor file line."
-  (cl-ppcre:register-groups-bind (title) ("\"?(.*?)\"? \\([\\d?]{4}" line) title))
-
-(defmethod initialize-instance :after ((movie movie) &key line)
-  "Initializes a movie."
-  (when line
-    (setf (slot-value movie 'title) (line-to-movie-title line)))
-  (unless (title movie)
-    (error "Must supply title")))
-
 (defmethod print-object ((movie movie) stream)
   "Prints a movie."
   (print-unreadable-object (movie stream :type t)
@@ -121,6 +120,39 @@
 (defmethod movie= ((movie-1 movie) (movie-2 movie))
   "Tests whether two movies are equal."
   (equal (title movie-1) (title movie-2)))
+
+(define-condition skip-role (error) ())
+
+(defun line-to-parts (line)
+  "Extracts a role's parts from an actor file line."
+  (cl-ppcre:register-groups-bind (title voice name billing)
+      ("\"?(.*?)\"? \\([\\d?]{4}(?:.*(\\(voice\\))|(?:.*\\[(.*?)\\])?(?:.*<(.*?)>)?)" line)
+    (when voice
+      (error 'skip-role))
+    (values title name billing)))
+
+(defmethod initialize-instance :after ((role role) &key line)
+   "Initializes a role."
+ (when line
+   (multiple-value-bind (title name billing) (line-to-parts line)
+     (unless title
+       (format t "Problem with line: ~a" line))
+     (setf (slot-value role 'movie) (make-instance 'movie :title title))
+     (setf (slot-value role 'name) name)
+     (setf (slot-value role 'billing) billing)))
+  (unless (movie role)
+    (error "Must supply movie")))
+
+(defmethod print-object ((role role) stream)
+  "Prints a role."
+  (print-unreadable-object (role stream :type t)
+    (with-slots (actor movie name) role
+    (format stream "~a in ~a~@[ as ~a~]" (name actor) (title movie) name))))
+
+(defmethod role= ((role-1 role) (role-2 role))
+  "Tests whether two roles are equal."
+  (and (actor= (actor role-1) (actor role-2))
+       (movie= (movie role-1) (movie role-2))))
 
 (defmethod initialize-instance :after ((actor-list actor-list) &key)
   "Initializes an actor list."
@@ -187,7 +219,7 @@
 	    (when (or (null (cdr cell)) (not (funcall test (car cell) (cadr cell))))
 	      (list (car cell)))) list))
 
-(defmethod read-record ((actor-list actor-list) stream)
+(defmethod read-record ((actor-list actor-list) actor stream)
   "Advances the stream to the next record and returns the current record."
   (when (end-of-data-p actor-list (file-position stream))
     (return-from read-record nil))
@@ -198,9 +230,11 @@
 	(setf record (subseq record (position #\Tab record)))
 	(return))
       (setf record (concatenate 'string record line)))
-    (setf record (mapcar (lambda (line) (make-instance 'movie :line line))
+    (setf record (mapcan (lambda (line) (handler-case
+					    (list (make-instance 'role :actor actor :line line))
+					  (skip-role ())))
 			 (split-sequence:split-sequence #\Tab record :remove-empty-subseqs t)))
-    (delete-duplicates-in-sorted-list record :test #'movie=)))
+    (delete-duplicates-in-sorted-list record :test #'role=)))
 
 (defmethod do-search ((actor-list actor-list) (actor actor))
   "Returns the record for a specified actor."
@@ -219,7 +253,7 @@
 		     (when (and (= min new-min) (= max new-max))
 		       (return-from binary-search nil))
 		     (when (equal actor-name current-actor)
-		       (return-from binary-search (read-record actor-list stream)))
+		       (return-from binary-search (read-record actor-list actor stream)))
 		     (file-position stream new-min)
 		     (binary-search new-min new-max)))))
 	(file-position stream (data-start actor-list))
@@ -229,9 +263,17 @@
   "Returns a human-readable file size."
   (format nil "~3d MB" (floor bytes (* 1024 1024))))
 
+(defun movie-line-p (current-entry movie-title)
+  "Returns whether a given line matches the given movie."
+  (when (>= (length current-entry) (length movie-title))
+    (loop for movie-char across movie-title and
+       entry-char across (string-left-trim "\"" current-entry)
+       when (char/= movie-char entry-char) do (return-from movie-line-p)
+       finally (return t))))
+
 (defmethod inverse-search-partition
     ((actor-list actor-list) (movies cons) n i progress progress-changed)
-  "Returns actors in a partition matching the specified movies."
+  "Returns roles in a partition matching the specified movies."
   (when (< n 1) (error "at least one partition needed"))
   (when (or (< i 0) (>= i n)) (error "illegal partition index"))
   (let* ((results (make-hash-table :test 'equal))
@@ -261,22 +303,28 @@
 		  (setf current-entry (subseq line tab-pos))))
 	      (setf current-entry (string-left-trim (list #\Tab) current-entry))
 	      (loop for movie in movies do
-		   (when (eql (search (title movie) (string-left-trim "\"" current-entry)) 0)
-		     (push (make-instance 'actor :name current-actor)
-			   (gethash movie results))))))))
+		   (when (movie-line-p current-entry (title movie))
+		     (handler-case
+			 (let ((role (make-instance 'role
+						    :actor (make-instance 'actor
+									  :name current-actor)
+						    :line current-entry)))
+			   (when (movie= movie (movie role))
+			     (push role (gethash movie results))))
+		       (skip-role ()))))))))
       (change-progress -1))
     (loop for movie in movies do
 	 (setf (gethash movie results)
 	       (nreverse (delete-duplicates-in-sorted-list (gethash movie results)
-							   :test #'actor=)))
+							   :test #'role=)))
        finally (return results))))
 
 (defmethod inverse-search ((actor-list actor-list) movie &optional (n 4))
-  "Returns actors matching a specified movie."
+  "Returns roles matching a specified movie."
   (gethash movie (inverse-search actor-list (list movie) n)))
 
 (defmethod inverse-search ((actor-list actor-list) (movies cons) &optional (n 4))
-  "Returns actors matching the specified movies."
+  "Returns roles matching the specified movies."
   (assert movies)
   (show-notice actor-list)
   (format t "Inverse searching ~a for ~r movie~:*~p ...~%"

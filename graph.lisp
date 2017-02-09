@@ -55,28 +55,23 @@
       (unless (find node-2 vertices) (add-node graph node-2))
       (push edge (gethash (to-key edge) edges)))))
 
-(defmethod to-dot ((graph graph) &key (stream t) mode condensed)
+(defmethod to-dot ((graph graph) &key (stream t) fn dot-options)
+  (declare (ignore dot-options))
   (format stream "graph {~%")
   (loop for node in (vertices graph) do
        (format stream "\"~a\";~%" (label node)))
-  (cond ((eql mode :merge)
-	 (loop for (node-1 node-2) being the hash-keys in (slot-value graph 'edges)
-	    using (hash-value edges) do
-	      (format stream "\"~a\" -- \"~a\" [label=\"~{~a~^~%~}\"];~%"
-		      (label node-1) (label node-2)
-		      (if (and condensed (> (length edges) 10))
-			  (list (format nil "~a actors" (length edges)))
-			  (reverse (mapcar #'label edges))))))
-	(t (loop for edge in (edges graph) do
-		(format stream "\"~a\" -- \"~a\" [label=\"~a\"];~%"
-			(label (node-1 edge)) (label (node-2 edge)) (label edge)))))
+  (if fn (funcall fn)
+      (loop for edge in (edges graph) do
+	   (format stream "\"~a\" -- \"~a\" [label=\"~a\"];~%"
+		   (label (node-1 edge)) (label (node-2 edge)) (label edge))))
   (format stream "}"))
 
-(defmethod make-image ((graph graph) file-name &key (format "png") mode condensed)
-  (let* ((process (run (concatenate 'string +dot-command+ " -T" format " -o " file-name)
-		       :wait nil :input :stream))
+(defmethod make-image ((graph graph) file-name &key (format "png") dot-options)
+  (let* ((process (run (concatenate 'string +dot-command+ " -T" format " -o" file-name
+				    " -Gcharset=latin1" )
+		       :wait nil :input :stream :output *terminal-io*))
 	 (stream (ccl:external-process-input-stream process)))
-    (to-dot graph :stream stream :mode mode :condensed condensed)
+    (to-dot graph :stream stream :dot-options dot-options)
     (close stream)
     (loop while (equal (ccl:external-process-status process) :running))))
 
@@ -86,15 +81,15 @@
 ;;;   '(progn (slime-setup '(slime-media))))
 ;;; iTerm2: https://raw.githubusercontent.com/gnachman/iTerm2/master/tests/imgcat
 
-(defun temporary-file-name (prefix &key open)
+(defun temporary-file-name (prefix format &key open)
   (concatenate 'string (if open prefix
 			   #+swank (swank:eval-in-emacs
 				    `(make-temp-name (concat temporary-file-directory ,prefix)))
-			   #-swank prefix) ".png"))
+			   #-swank prefix) "." format))
 
-(defmethod show ((graph graph) &key open mode condensed)
-  (let ((file-name (temporary-file-name "graph" :open open)))
-    (make-image graph file-name :mode mode :condensed condensed)
+(defmethod show ((graph graph) &key (format "png") open dot-options)
+  (let ((file-name (temporary-file-name "graph" format :open open)))
+    (make-image graph file-name :format format :dot-options dot-options)
     (when open
       (run (concatenate 'string "open " file-name)))
     (unless open

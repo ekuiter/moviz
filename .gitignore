@@ -1,4 +1,5 @@
 *.dx64fsl
 *.png
+*.svg
 imdb/
-movie-graph
+*-graph

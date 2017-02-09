@@ -1,17 +1,24 @@
 (in-package :cl-user)
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (ql:quickload :split-sequence)
+  (ql:quickload :cl-ppcre))
+
 (defpackage :actor-list
-  (:use :common-lisp)
+  (:use :common-lisp :split-sequence)
   (:export :actor
 	   :movie
+	   :role
 	   :actor-list
 	   :do-search
 	   :inverse-search
 	   :name
 	   :title
+	   :billing
 	   :actor=
 	   :actor<
-	   :movie=)
+	   :movie=
+	   :role=)
   (:shadow :file-length))
 
 (defpackage :graph

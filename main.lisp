@@ -3,15 +3,21 @@
 (defclass movie-graph (graph) ())
 
 (defclass movie-node (node movie)
-  ((actors :initform nil)
-   (actresses :initform nil)
+  ((actors :initform :undefined)
+   (actresses :initform :undefined)
    (actor-list :allocation :class
 	       :initform (make-instance 'actor-list :file-name "imdb/actors.list"))
    (actress-list :allocation :class
 		 :initform (make-instance 'actor-list :file-name "imdb/actresses.list"))))
 
-(defclass actor-edge (edge actor)
-  ((gender :initarg :gender
+(defclass role-edge (edge)
+  ((role-1 :initarg :role-1
+	   :initform (error "must supply role 1")
+	   :reader role-1)
+   (role-2 :initarg :role-2
+	   :initform (error "must supply role 2")
+	   :reader role-2)
+   (gender :initarg :gender
 	   :initform nil
 	   :reader gender)))
 
@@ -21,18 +27,22 @@
 (defmethod label ((node movie-node))
   (title node))
 
-(defmethod gender-string ((edge actor-edge))
+(defmethod gender-string ((edge role-edge))
   (when (gender edge)
     (if (eql (gender edge) :male) "♂" "♀")))
 
-(defmethod label ((edge actor-edge))
-  (format nil "~@[~a~] ~a" (gender-string edge) (name edge)))
+(defmethod label ((edge role-edge))
+  (format nil "~@[~a~] ~a as ~a (~a) and ~a (~a)" (gender-string edge)
+	  (name (actor (role-1 edge)))
+	  (name (role-1 edge)) (billing (role-1 edge))
+	  (name (role-2 edge)) (billing (role-2 edge))))
 
 (defmacro define-lazy-slot (slot class-slot)
   `(progn (defmethod ,slot ((node movie-node))
 	    (with-slots (,slot ,class-slot) node
-	      (or ,slot
-		  (setf ,slot (inverse-search ,class-slot node)))))
+	      (if (eql ,slot :undefined)
+		  (setf ,slot (inverse-search ,class-slot node))
+		  ,slot)))
 	  (defmethod ,slot ((nodes cons))
 	    (assert nodes)
 	    (let ((results (inverse-search (slot-value (first nodes) ',class-slot) nodes)))
@@ -43,19 +53,21 @@
 (define-lazy-slot actors actor-list)
 (define-lazy-slot actresses actress-list)
 
-(defun intersect-sorted-fn (&key (test= #'eql) (test< #'<))
+(defun intersect-sorted-fn (&key (test= #'eql) (test< #'<) (key #'identity))
   "Returns a function that intersects two sorted lists."
   (macrolet ((advance (x xs)
 	       `(progn (setf ,x (car ,xs)) (setf ,xs (cdr ,xs)))))
     (lambda (list-a list-b)
-      (loop with (a . as) = list-a and (b . bs) = list-b while (and a b)
-	 if (funcall test= a b) collect a and do (advance a as) (advance b bs)
-	 else if (funcall test< a b) do (advance a as)
-	 else do (advance b bs)))))
+      (if (and list-a list-b)
+	  (loop with (a . as) = list-a and (b . bs) = list-b while (and a b)
+	     if (funcall test= (funcall key a) (funcall key b))
+	     collect (list a b) and do (advance a as) (advance b bs)
+	     else if (funcall test< (funcall key a) (funcall key b)) do (advance a as)
+	     else do (advance b bs))))))
 
 (defun intersect-movie-nodes (accessor node-1 node-2)
   "Returns a list of actors or actresses who played in the specified movie nodes."
-  (funcall (intersect-sorted-fn :test= #'actor= :test< #'actor<)
+  (funcall (intersect-sorted-fn :test= #'actor= :test< #'actor< :key #'actor)
 	   (funcall accessor node-1) (funcall accessor node-2)))
 
 (defun load-nodes (&rest nodes)
@@ -70,9 +82,10 @@
   (load-nodes node-1)
   (call-next-method)
   (labels ((add-edges (node-1 node-2 accessor gender)
-	     (loop for actor in (intersect-movie-nodes accessor node-1 node-2) do
-		  (add-edge graph (make-instance 'actor-edge :node-1 node-1 :node-2 node-2
-						 :name (name actor) :gender gender)))))
+	     (loop for (role-1 role-2) in (intersect-movie-nodes accessor node-1 node-2) do
+		  (add-edge graph
+			    (make-instance 'role-edge :node-1 node-1 :node-2 node-2
+					   :role-1 role-1 :role-2 role-2 :gender gender)))))
     (loop for node-2 in (vertices graph)
        unless (movie= node-1 node-2) do
 	 (add-edges node-1 node-2 #'actors :male)
@@ -85,8 +98,19 @@
        (add-node graph node))
   graph)
 
-(defmethod show ((graph movie-graph) &key (open t) (condensed nil))
-  (call-next-method graph :open open :mode :merge :condensed condensed))
+(defmethod to-dot ((graph movie-graph) &key (stream t) dot-options)
+  (labels ((fn ()
+	     (loop for (node-1 node-2) being the hash-keys in (slot-value graph 'edges)
+		using (hash-value edges) do
+		  (format stream "\"~a\" -- \"~a\" [label=\"~{~a~^~%~}\"];~%"
+			  (label node-1) (label node-2)
+			  (if (and (getf dot-options :condensed) (> (length edges) 10))
+			      (list (format nil "~a actors" (length edges)))
+			      (reverse (mapcar #'label edges)))))))
+    (call-next-method graph :stream stream :dot-options dot-options :fn #'fn)))
+
+(defmethod show ((graph movie-graph) &key (open t) (format "png") (condensed nil))
+  (call-next-method graph :open open :format format :dot-options (list :condensed condensed)))
 
 (defvar *graph* (make-instance 'movie-graph))
 
