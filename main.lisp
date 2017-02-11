@@ -21,6 +21,31 @@
 	   :initform nil
 	   :reader gender)))
 
+(defmacro defgraph (class superclasses)
+  `(progn (defclass ,class ,superclasses ())
+	  (defmethod initialize-instance :after ((graph ,class) &key parent-graph)
+	    (unless parent-graph (error "must supply parent graph"))
+	    (with-slots (vertices edges) graph
+	      (setf vertices (slot-value parent-graph 'vertices)
+		    edges (slot-value parent-graph 'edges))))
+	  (defmethod ,(intern (concatenate 'string "MAKE-" (symbol-name class)))
+	      ((parent-graph movie-graph))
+	    (make-instance ',class :parent-graph parent-graph))))
+
+(defmacro make-graph (parent-graph &rest types)
+  (unless types (return-from make-graph `(make-graph ,parent-graph unlabeled)))
+  (let ((class (intern (format nil "~{~a-~}GRAPH" types)))
+	(superclasses
+	 (mapcar (lambda (type)
+		   (intern (concatenate 'string (symbol-name type) "-GRAPH"))) types)))
+    `(progn ,(unless (= (length types) 1) `(defgraph ,class ,superclasses))
+	    (make-instance ',class :parent-graph ,parent-graph))))
+
+(defgraph unlabeled-graph (movie-graph))
+(defgraph detailed-graph (movie-graph))
+(defgraph condensed-graph (detailed-graph))
+(defgraph weighted-graph (movie-graph))
+
 (defmethod compare ((node-1 movie-node) (node-2 movie-node))
   (string<= (title node-1) (title node-2)))
 
@@ -45,6 +70,9 @@
 
 (define-lazy-slot actors actor-list)
 (define-lazy-slot actresses actress-list)
+
+(defmethod total-actors ((node movie-node))
+  (+ (length (actors node)) (length (actresses node))))
 
 (defun intersect-sorted-fn (&key (test= #'eql) (test< #'<) (key #'identity))
   "Returns a function that intersects two sorted lists."
@@ -91,23 +119,60 @@
        (add-node graph node))
   graph)
 
-(defmethod to-dot ((graph movie-graph) &key (stream t) dot-options)
-  (labels ((edge-fn (make-label)
+(defun short-label (edges)
+  (format nil "~a actors" (length edges)))
+
+(defun map-number (x in-min in-max out-min out-max)
+  (+ (float (/ (* (- x in-min) (- out-max out-min)) (- in-max in-min))) out-min))
+
+(defun average (a b)
+  (/ (+ a b) 2))
+
+(defun merge-plist (p1 p2)
+  (loop for (key value) on p1 by #'cddr
+     unless (getf p2 key)
+     do (push value p2) (push key p2))
+  p2)
+
+(defmethod make-edge ((graph movie-graph) node-1 node-2 edges)
+  (declare (ignore node-1 node-2 edges))
+  nil)
+
+(defmethod make-edge ((graph unlabeled-graph) node-1 node-2 edges)
+  (declare (ignore node-1 node-2 edges))
+  (merge-plist (call-next-method) (list :label "")))
+
+(defmethod make-edge ((graph detailed-graph) node-1 node-2 edges)
+  (declare (ignore node-1 node-2))
+  (merge-plist (call-next-method)
+	       (list :label (format nil "~{~a~^~%~}" (reverse (mapcar #'label edges))))))
+
+(defmethod make-edge ((graph condensed-graph) node-1 node-2 edges)
+  (declare (ignore node-1 node-2))
+  (merge-plist (call-next-method)
+	       (when (> (length edges) 10) (list :label (short-label edges)))))
+
+(defmethod make-edge ((graph weighted-graph) node-1 node-2 edges)
+  (let ((weight (float (* (/ (length edges) ; rough percentage of common actors
+			     (average (total-actors node-1) (total-actors node-2))) 100)))
+	(min-weight 0.2) (max-weight 15))
+    (setf weight (min max-weight (max min-weight weight)))
+    (merge-plist (call-next-method)
+		 (list :label (write-to-string (length edges)) :weight weight
+		       :color "\"#555555\"" :penwidth weight))))
+
+(defmethod to-dot ((graph movie-graph) &key (stream t))
+  (labels ((edge-fn (make-edge-fn)
 	     (loop for (node-1 node-2) being the hash-keys in (slot-value graph 'edges)
 		using (hash-value edges) do
-		  (let ((label (format nil "~{~a~^~%~}" (reverse (mapcar #'label edges))))
-			(short-label (format nil "~a actors" (length edges))))
-		    (handler-case
-			(funcall make-label node-1 node-2
-				 (if (and (getf dot-options :condensed) (> (length edges) 10))
-				     short-label label))
-		      (label-too-long-error ()
-			(funcall make-label node-1 node-2 short-label)))))))
-    (call-next-method graph :stream stream :dot-options dot-options :edge-fn #'edge-fn)))
+		  (handler-case
+		      (apply make-edge-fn node-1 node-2 (make-edge graph node-1 node-2 edges))
+		    (label-too-long-error ()
+		      (funcall make-edge-fn node-1 node-2 :label (short-label edges)))))))
+    (call-next-method graph :stream stream :edge-fn #'edge-fn)))
 
-(defmethod show ((graph movie-graph) &key (open t) (format "png") (condensed nil))
-  (call-next-method graph :open open :format format :charset "latin1"
-		    :dot-options (list :condensed condensed)))
+(defmethod show ((graph movie-graph) &key (open t) (format "png"))
+  (call-next-method graph :open open :format format :charset "latin1"))
 
 (defvar *graph* (make-instance 'movie-graph))
 

@@ -57,28 +57,28 @@
 
 (define-condition label-too-long-error (error) ())
 
-(defmethod to-dot ((graph graph) &key (stream t) edge-fn dot-options)
-  (declare (ignore dot-options))
+(defmethod to-dot ((graph graph) &key (stream t) edge-fn)
   (format stream "graph {~%")
   (loop for node in (vertices graph) do
        (format stream "\"~a\";~%" (label node)))
-  (labels ((make-label (node-1 node-2 label)
-	     (format stream "\"~a\" -- \"~a\" [label=\"~a\"];~%"
-		     (label node-1) (label node-2)
-		     (if (> (length label) 16384) ; GraphViz weirdness
-			 (error 'label-too-long-error)
-			 label))))
-    (if edge-fn (funcall edge-fn #'make-label)
+  (labels ((make-edge (node-1 node-2 &rest options)
+	     (when (getf options :label)
+	       (when (> (length (getf options :label)) 16384)
+		 (error 'label-too-long-error)) ; GraphViz weirdness
+	       (setf (getf options :label) (format nil "\"~a\"" (getf options :label))))
+	     (format stream "\"~a\" -- \"~a\" ~{[~(~a~)=~a]~};~%"
+		     (label node-1) (label node-2) options)))
+    (if edge-fn (funcall edge-fn #'make-edge)
 	(loop for edge in (edges graph) do
-	     (make-label (node-1 edge) (node-2 edge) (label edge))))
+	     (make-edge (node-1 edge) (node-2 edge) :label (label edge))))
     (format stream "}")))
 
-(defmethod make-image ((graph graph) file-name &key (format "png") charset dot-options)
+(defmethod make-image ((graph graph) file-name &key (format "png") charset)
   (let* ((command (concatenate 'string +dot-command+ " -T" format " -o" file-name))
 	 (process (run (if charset (concatenate 'string command " -Gcharset=" charset) command)
 		       :wait nil :input :stream :output *terminal-io*))
 	 (stream (ccl:external-process-input-stream process)))
-    (to-dot graph :stream stream :dot-options dot-options)
+    (to-dot graph :stream stream)
     (close stream)
     (loop while (equal (ccl:external-process-status process) :running))))
 
@@ -94,9 +94,9 @@
 				    `(make-temp-name (concat temporary-file-directory ,prefix)))
 			   #-swank prefix) "." format))
 
-(defmethod show ((graph graph) &key (format "png") charset open dot-options)
+(defmethod show ((graph graph) &key (format "png") charset open)
   (let ((file-name (temporary-file-name "graph" format :open open)))
-    (make-image graph file-name :format format :charset charset :dot-options dot-options)
+    (make-image graph file-name :format format :charset charset)
     (when open
       (run (concatenate 'string "open " file-name)))
     (unless open

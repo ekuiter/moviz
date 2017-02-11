@@ -26,6 +26,8 @@
   (:export :graph
 	   :node
 	   :edge
+	   :node-1
+	   :node-2
 	   :add-node
 	   :add-edge
 	   :make-image
