@@ -27,15 +27,8 @@
 (defmethod label ((node movie-node))
   (title node))
 
-(defmethod gender-string ((edge role-edge))
-  (when (gender edge)
-    (if (eql (gender edge) :male) "♂" "♀")))
-
 (defmethod label ((edge role-edge))
-  (format nil "~@[~a~] ~a as ~a (~a) and ~a (~a)" (gender-string edge)
-	  (name (actor (role-1 edge)))
-	  (name (role-1 edge)) (billing (role-1 edge))
-	  (name (role-2 edge)) (billing (role-2 edge))))
+  (format nil "~a" (name (actor (role-1 edge)))))
 
 (defmacro define-lazy-slot (slot class-slot)
   `(progn (defmethod ,slot ((node movie-node))
@@ -99,18 +92,22 @@
   graph)
 
 (defmethod to-dot ((graph movie-graph) &key (stream t) dot-options)
-  (labels ((fn ()
+  (labels ((edge-fn (make-label)
 	     (loop for (node-1 node-2) being the hash-keys in (slot-value graph 'edges)
 		using (hash-value edges) do
-		  (format stream "\"~a\" -- \"~a\" [label=\"~{~a~^~%~}\"];~%"
-			  (label node-1) (label node-2)
-			  (if (and (getf dot-options :condensed) (> (length edges) 10))
-			      (list (format nil "~a actors" (length edges)))
-			      (reverse (mapcar #'label edges)))))))
-    (call-next-method graph :stream stream :dot-options dot-options :fn #'fn)))
+		  (let ((label (format nil "~{~a~^~%~}" (reverse (mapcar #'label edges))))
+			(short-label (format nil "~a actors" (length edges))))
+		    (handler-case
+			(funcall make-label node-1 node-2
+				 (if (and (getf dot-options :condensed) (> (length edges) 10))
+				     short-label label))
+		      (label-too-long-error ()
+			(funcall make-label node-1 node-2 short-label)))))))
+    (call-next-method graph :stream stream :dot-options dot-options :edge-fn #'edge-fn)))
 
 (defmethod show ((graph movie-graph) &key (open t) (format "png") (condensed nil))
-  (call-next-method graph :open open :format format :dot-options (list :condensed condensed)))
+  (call-next-method graph :open open :format format :charset "latin1"
+		    :dot-options (list :condensed condensed)))
 
 (defvar *graph* (make-instance 'movie-graph))
 

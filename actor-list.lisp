@@ -121,14 +121,14 @@
   "Tests whether two movies are equal."
   (equal (title movie-1) (title movie-2)))
 
-(define-condition skip-role (error) ())
+(define-condition bad-line-error (error) ())
 
 (defun line-to-parts (line)
   "Extracts a role's parts from an actor file line."
   (cl-ppcre:register-groups-bind (title voice name billing)
       ("\"?(.*?)\"? \\([\\d?]{4}(?:.*(\\(voice\\))|(?:.*\\[(.*?)\\])?(?:.*<(.*?)>)?)" line)
     (when voice
-      (error 'skip-role))
+      (error 'bad-line-error))
     (values title name billing)))
 
 (defmethod initialize-instance :after ((role role) &key line)
@@ -232,7 +232,7 @@
       (setf record (concatenate 'string record line)))
     (setf record (mapcan (lambda (line) (handler-case
 					    (list (make-instance 'role :actor actor :line line))
-					  (skip-role ())))
+					  (bad-line-error ())))
 			 (split-sequence:split-sequence #\Tab record :remove-empty-subseqs t)))
     (delete-duplicates-in-sorted-list record :test #'role=)))
 
@@ -311,7 +311,7 @@
 						    :line current-entry)))
 			   (when (movie= movie (movie role))
 			     (push role (gethash movie results))))
-		       (skip-role ()))))))))
+		       (bad-line-error ()))))))))
       (change-progress -1))
     (loop for movie in movies do
 	 (setf (gethash movie results)

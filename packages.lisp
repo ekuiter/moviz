@@ -34,7 +34,8 @@
 	   :compare
 	   :label
 	   :vertices
-	   :edges))
+	   :edges
+	   :label-too-long-error))
 
 (defpackage :main
   (:use :common-lisp :actor-list :graph)

@@ -55,20 +55,27 @@
       (unless (find node-2 vertices) (add-node graph node-2))
       (push edge (gethash (to-key edge) edges)))))
 
-(defmethod to-dot ((graph graph) &key (stream t) fn dot-options)
+(define-condition label-too-long-error (error) ())
+
+(defmethod to-dot ((graph graph) &key (stream t) edge-fn dot-options)
   (declare (ignore dot-options))
   (format stream "graph {~%")
   (loop for node in (vertices graph) do
        (format stream "\"~a\";~%" (label node)))
-  (if fn (funcall fn)
-      (loop for edge in (edges graph) do
-	   (format stream "\"~a\" -- \"~a\" [label=\"~a\"];~%"
-		   (label (node-1 edge)) (label (node-2 edge)) (label edge))))
-  (format stream "}"))
+  (labels ((make-label (node-1 node-2 label)
+	     (format stream "\"~a\" -- \"~a\" [label=\"~a\"];~%"
+		     (label node-1) (label node-2)
+		     (if (> (length label) 16384) ; GraphViz weirdness
+			 (error 'label-too-long-error)
+			 label))))
+    (if edge-fn (funcall edge-fn #'make-label)
+	(loop for edge in (edges graph) do
+	     (make-label (node-1 edge) (node-2 edge) (label edge))))
+    (format stream "}")))
 
-(defmethod make-image ((graph graph) file-name &key (format "png") dot-options)
-  (let* ((process (run (concatenate 'string +dot-command+ " -T" format " -o" file-name
-				    " -Gcharset=latin1" )
+(defmethod make-image ((graph graph) file-name &key (format "png") charset dot-options)
+  (let* ((command (concatenate 'string +dot-command+ " -T" format " -o" file-name))
+	 (process (run (if charset (concatenate 'string command " -Gcharset=" charset) command)
 		       :wait nil :input :stream :output *terminal-io*))
 	 (stream (ccl:external-process-input-stream process)))
     (to-dot graph :stream stream :dot-options dot-options)
@@ -87,9 +94,9 @@
 				    `(make-temp-name (concat temporary-file-directory ,prefix)))
 			   #-swank prefix) "." format))
 
-(defmethod show ((graph graph) &key (format "png") open dot-options)
+(defmethod show ((graph graph) &key (format "png") charset open dot-options)
   (let ((file-name (temporary-file-name "graph" format :open open)))
-    (make-image graph file-name :format format :dot-options dot-options)
+    (make-image graph file-name :format format :charset charset :dot-options dot-options)
     (when open
       (run (concatenate 'string "open " file-name)))
     (unless open
