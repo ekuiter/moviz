@@ -19,7 +19,7 @@ Inverse searching imdb/actors.list for five movies ...
 Inverse searching imdb/actresses.list for five movies ...
  0% 11% 27% 43% 59% 75% 91%
 #<MOVIE-GRAPH {#<MOVIE-NODE Mr. Robot>, #<MOVIE-NODE Supernatural>, #<MOVIE-NODE Westworld>, #<MOVIE-NODE Person of Interest>, #<MOVIE-NODE House of Cards>}, 162 edges>
-? (show *graph* :condensed t)
+? (show (make-graph *graph* condensed))
 NIL
 ? (save-and-quit "my-graph")
 ```

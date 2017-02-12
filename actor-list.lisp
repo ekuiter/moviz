@@ -59,8 +59,8 @@
 	  :initform nil
 	  :reader movie)
    (name :initarg :name
-		   :initform nil
-		   :reader name)
+	 :initform nil
+	 :reader name)
    (billing :initarg :billing
 	    :initform nil
 	    :reader billing)))
@@ -132,14 +132,12 @@
     (values title name billing)))
 
 (defmethod initialize-instance :after ((role role) &key line)
-   "Initializes a role."
- (when line
-   (multiple-value-bind (title name billing) (line-to-parts line)
-     (unless title
-       (format t "Problem with line: ~a" line))
-     (setf (slot-value role 'movie) (make-instance 'movie :title title))
-     (setf (slot-value role 'name) name)
-     (setf (slot-value role 'billing) billing)))
+  "Initializes a role."
+  (when line
+    (multiple-value-bind (title name billing) (line-to-parts line)
+      (setf (slot-value role 'movie) (make-instance 'movie :title title)
+	    (slot-value role 'name) name
+	    (slot-value role 'billing) (when billing (parse-integer billing)))))
   (unless (movie role)
     (error "Must supply movie")))
 
@@ -147,7 +145,7 @@
   "Prints a role."
   (print-unreadable-object (role stream :type t)
     (with-slots (actor movie name) role
-    (format stream "~a in ~a~@[ as ~a~]" (name actor) (title movie) name))))
+      (format stream "~a in ~a~@[ as ~a~]" (name actor) (title movie) name))))
 
 (defmethod role= ((role-1 role) (role-2 role))
   "Tests whether two roles are equal."

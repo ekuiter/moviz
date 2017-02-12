@@ -57,8 +57,9 @@
 
 (define-condition label-too-long-error (error) ())
 
-(defmethod to-dot ((graph graph) &key (stream t) edge-fn)
+(defmethod to-dot ((graph graph) &key (stream t) init-fn edge-fn)
   (format stream "graph {~%")
+  (when init-fn (funcall init-fn))
   (loop for node in (vertices graph) do
        (format stream "\"~a\";~%" (label node)))
   (labels ((make-edge (node-1 node-2 &rest options)

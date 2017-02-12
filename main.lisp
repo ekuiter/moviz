@@ -162,14 +162,18 @@
 		       :color "\"#555555\"" :penwidth weight))))
 
 (defmethod to-dot ((graph movie-graph) &key (stream t))
-  (labels ((edge-fn (make-edge-fn)
+  (labels ((init-fn ()
+	     (let ((font-name "Helvetica"))
+	       (format stream "node [fontname=\"~a bold\"];~
+                               edge [fontname=\"~:*~a\"];" font-name)))
+	   (edge-fn (make-edge-fn)
 	     (loop for (node-1 node-2) being the hash-keys in (slot-value graph 'edges)
 		using (hash-value edges) do
 		  (handler-case
 		      (apply make-edge-fn node-1 node-2 (make-edge graph node-1 node-2 edges))
 		    (label-too-long-error ()
 		      (funcall make-edge-fn node-1 node-2 :label (short-label edges)))))))
-    (call-next-method graph :stream stream :edge-fn #'edge-fn)))
+    (call-next-method graph :stream stream :init-fn #'init-fn :edge-fn #'edge-fn)))
 
 (defmethod show ((graph movie-graph) &key (open t) (format "png"))
   (call-next-method graph :open open :format format :charset "latin1"))
