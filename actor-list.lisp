@@ -102,6 +102,11 @@
   (let ((last-name (unless (equal (last-name actor) "") (last-name actor))))
     (format nil "~@[~a, ~]~a~@[ (~a)~]" last-name (first-name actor) (number actor))))
 
+(defmethod readable-name ((actor actor))
+  "Returns an actor's name in a readable form."
+  (let ((last-name (unless (equal (last-name actor) "") (last-name actor))))
+    (format nil "~a~@[ ~a~]" (first-name actor) last-name)))
+
 (defmethod actor= ((actor-1 actor) (actor-2 actor))
   "Tests whether two actors are equal."
   (and (equal (first-name actor-1) (first-name actor-2))
@@ -147,10 +152,18 @@
     (with-slots (actor movie name) role
       (format stream "~a in ~a~@[ as ~a~]" (name actor) (title movie) name))))
 
+(defmethod role-score ((role role))
+  "Scores a role."
+  (if (billing role) (billing role) 9999))
+
 (defmethod role= ((role-1 role) (role-2 role))
   "Tests whether two roles are equal."
   (and (actor= (actor role-1) (actor role-2))
        (movie= (movie role-1) (movie role-2))))
+
+(defmethod role< ((role-1 role) (role-2 role))
+  "Tests whether a role is less than another."
+  (< (role-score role-1) (role-score role-2)))
 
 (defmethod initialize-instance :after ((actor-list actor-list) &key)
   "Initializes an actor list."

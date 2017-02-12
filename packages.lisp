@@ -13,12 +13,15 @@
 	   :do-search
 	   :inverse-search
 	   :name
+	   :readable-name
 	   :title
 	   :billing
 	   :actor=
 	   :actor<
 	   :movie=
-	   :role=)
+	   :role-score
+	   :role=
+	   :role<)
   (:shadow :file-length))
 
 (defpackage :graph

@@ -45,6 +45,7 @@
 (defgraph detailed-graph (movie-graph))
 (defgraph condensed-graph (detailed-graph))
 (defgraph weighted-graph (movie-graph))
+(defgraph top-actors-graph (detailed-graph))
 
 (defmethod compare ((node-1 movie-node) (node-2 movie-node))
   (string<= (title node-1) (title node-2)))
@@ -53,7 +54,13 @@
   (title node))
 
 (defmethod label ((edge role-edge))
-  (format nil "~a" (name (actor (role-1 edge)))))
+  (readable-name (actor (role-1 edge))))
+
+(defmethod role-edge-score ((edge role-edge))
+  (min (role-score (role-1 edge)) (role-score (role-2 edge))))
+
+(defmethod role-edge< ((edge-1 role-edge) (edge-2 role-edge))
+  (< (role-edge-score edge-1) (role-edge-score edge-2)))
 
 (defmacro define-lazy-slot (slot class-slot)
   `(progn (defmethod ,slot ((node movie-node))
@@ -145,7 +152,7 @@
 (defmethod make-edge ((graph detailed-graph) node-1 node-2 edges)
   (declare (ignore node-1 node-2))
   (merge-plist (call-next-method)
-	       (list :label (format nil "~{~a~^~%~}" (reverse (mapcar #'label edges))))))
+	       (list :label (format nil "~{~a~^~%~}" (mapcar #'label edges)))))
 
 (defmethod make-edge ((graph condensed-graph) node-1 node-2 edges)
   (declare (ignore node-1 node-2))
@@ -161,6 +168,13 @@
 		 (list :label (write-to-string (length edges)) :weight weight
 		       :color "\"#555555\"" :penwidth weight))))
 
+(defmethod make-edge ((graph top-actors-graph) node-1 node-2 edges)
+  (declare (ignore node-1 node-2))
+  (merge-plist (call-next-method)
+	       (list :label (format nil "~{~a~^~%~}" (loop for edge in edges repeat 5
+							while (<= (role-edge-score edge) 15)
+							collect (label edge))))))
+
 (defmethod to-dot ((graph movie-graph) &key (stream t))
   (labels ((init-fn ()
 	     (let ((font-name "Helvetica"))
@@ -169,6 +183,7 @@
 	   (edge-fn (make-edge-fn)
 	     (loop for (node-1 node-2) being the hash-keys in (slot-value graph 'edges)
 		using (hash-value edges) do
+		  (setf edges (sort (copy-list edges) #'role-edge<))
 		  (handler-case
 		      (apply make-edge-fn node-1 node-2 (make-edge graph node-1 node-2 edges))
 		    (label-too-long-error ()
