@@ -21,7 +21,7 @@
 	   :initform nil
 	   :reader gender)))
 
-(defmacro defgraph (class superclasses)
+(defmacro defgraphclass (class superclasses)
   `(progn (defclass ,class ,superclasses ())
 	  (defmethod initialize-instance :after ((graph ,class) &key parent-graph)
 	    (unless parent-graph (error "must supply parent graph"))
@@ -32,20 +32,21 @@
 	      ((parent-graph movie-graph))
 	    (make-instance ',class :parent-graph parent-graph))))
 
+(defmacro defgraph (class superclasses &body body)
+  `(progn (defgraphclass ,class ,superclasses)
+	  (defmethod make-edge ((graph ,class) node-1 node-2 edges)
+	    (declare (ignorable node-1 node-2 edges))
+	    (merge-plist (call-next-method)
+			 (progn ,@body)))))
+
 (defmacro make-graph (parent-graph &rest types)
   (unless types (return-from make-graph `(make-graph ,parent-graph unlabeled)))
   (let ((class (intern (format nil "~{~a-~}GRAPH" types)))
 	(superclasses
 	 (mapcar (lambda (type)
 		   (intern (concatenate 'string (symbol-name type) "-GRAPH"))) types)))
-    `(progn ,(unless (= (length types) 1) `(defgraph ,class ,superclasses))
+    `(progn ,(unless (= (length types) 1) `(defgraphclass ,class ,superclasses))
 	    (make-instance ',class :parent-graph ,parent-graph))))
-
-(defgraph unlabeled-graph (movie-graph))
-(defgraph detailed-graph (movie-graph))
-(defgraph condensed-graph (detailed-graph))
-(defgraph weighted-graph (movie-graph))
-(defgraph top-actors-graph (detailed-graph))
 
 (defmethod compare ((node-1 movie-node) (node-2 movie-node))
   (string<= (title node-1) (title node-2)))
@@ -145,35 +146,27 @@
   (declare (ignore node-1 node-2 edges))
   nil)
 
-(defmethod make-edge ((graph unlabeled-graph) node-1 node-2 edges)
-  (declare (ignore node-1 node-2 edges))
-  (merge-plist (call-next-method) (list :label "")))
+(defgraph unlabeled-graph (movie-graph)
+  (list :label ""))
 
-(defmethod make-edge ((graph detailed-graph) node-1 node-2 edges)
-  (declare (ignore node-1 node-2))
-  (merge-plist (call-next-method)
-	       (list :label (format nil "~{~a~^~%~}" (mapcar #'label edges)))))
+(defgraph detailed-graph (movie-graph)
+  (list :label (format nil "~{~a~^~%~}" (mapcar #'label edges))))
 
-(defmethod make-edge ((graph condensed-graph) node-1 node-2 edges)
-  (declare (ignore node-1 node-2))
-  (merge-plist (call-next-method)
-	       (when (> (length edges) 10) (list :label (short-label edges)))))
+(defgraph condensed-graph (detailed-graph)
+   (when (> (length edges) 10) (list :label (short-label edges))))
 
-(defmethod make-edge ((graph weighted-graph) node-1 node-2 edges)
-  (let ((weight (float (* (/ (length edges) ; rough percentage of common actors
+(defgraph weighted-graph (movie-graph)
+ (let ((weight (float (* (/ (length edges) ; rough percentage of common actors
 			     (average (total-actors node-1) (total-actors node-2))) 100)))
 	(min-weight 0.2) (max-weight 15))
     (setf weight (min max-weight (max min-weight weight)))
-    (merge-plist (call-next-method)
-		 (list :label (write-to-string (length edges)) :weight weight
-		       :color "\"#555555\"" :penwidth weight))))
+    (list :label (write-to-string (length edges)) :color "\"#555555\""
+	  :weight weight :penwidth weight)))
 
-(defmethod make-edge ((graph top-actors-graph) node-1 node-2 edges)
-  (declare (ignore node-1 node-2))
-  (merge-plist (call-next-method)
-	       (list :label (format nil "~{~a~^~%~}" (loop for edge in edges repeat 5
-							while (<= (role-edge-score edge) 15)
-							collect (label edge))))))
+(defgraph top-actors-graph (detailed-graph)
+  (list :label (format nil "~{~a~^~%~}"
+		       (loop for edge in edges repeat 5	while (<= (role-edge-score edge) 15)
+			  collect (label edge)))))
 
 (defmethod to-dot ((graph movie-graph) &key (stream t))
   (labels ((init-fn ()
