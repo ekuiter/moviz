@@ -8,7 +8,7 @@
   (:use :common-lisp :split-sequence)
   (:export :actor :movie :role :actors-list :do-search :inverse-search
 	   :name :readable-name :title :billing :actor= :actor< :movie=
-	   :role-score :role= :role< :alternate-versions-list)
+	   :role-score :role= :role< :alternate-versions-list :make-list-instance)
   (:shadow :file-length))
 
 (defpackage :graph

@@ -1,5 +1,7 @@
 (in-package :imdb)
 
+(defparameter +imdb-path+ "imdb/")
+
 (defclass movie ()
   ((title :initarg :title
 	  :initform (error "Must supply title")
@@ -54,6 +56,12 @@
 (defmethod movie= ((movie-1 movie) (movie-2 movie))
   "Tests whether two movies are equal."
   (equal (title movie-1) (title movie-2)))
+
+(defmacro make-list-instance (class &optional file-name)
+  "Creates a list file."
+  `(make-instance ',(intern (format nil "~a-LIST" class))
+		  :file-name ,(format nil "~a~(~a~).list" +imdb-path+
+				      (if file-name file-name class))))
 
 (defmethod initialize-instance :after ((list imdb-list) &key)
   "Initializes a list file."
