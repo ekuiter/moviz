@@ -11,11 +11,6 @@
 	   :initform nil
 	   :reader number)))
 
-(defclass movie ()
-  ((title :initarg :title
-	  :initform (error "Must supply title")
-	  :reader title)))
-
 (defclass role ()
   ((actor :initarg :actor
 	  :initform (error "Must supply actor")
@@ -31,6 +26,9 @@
 	    :reader billing)))
 
 (defclass actors-list (imdb-list) ())
+
+(define-data-bound-slot actors-list start ("THE ACTRESSES LIST" "THE ACTORS LIST") 4)
+(define-data-bound-slot actors-list end "SUBMITTING UPDATES" 3)
 
 (defmethod initialize-instance :after ((actor actor) &key name)
   "Initializes an actor."
@@ -72,15 +70,6 @@
   "Tests whether an actor is less than another."
   (string-lessp (name actor-1) (name actor-2)))
 
-(defmethod print-object ((movie movie) stream)
-  "Prints a movie."
-  (print-unreadable-object (movie stream :type t)
-    (format stream "~a" (title movie))))
-
-(defmethod movie= ((movie-1 movie) (movie-2 movie))
-  "Tests whether two movies are equal."
-  (equal (title movie-1) (title movie-2)))
-
 (define-condition bad-line-error (error) ())
 
 (defun line-to-parts (line)
@@ -120,42 +109,12 @@
   "Tests whether a role is less than another."
   (< (role-score role-1) (role-score role-2)))
 
-(define-lazy-slot actors-list data-start
-    "Returns the offset of the first record."
-  (do-lines stream () (null line)
-    (when (or (equal line "THE ACTRESSES LIST")
-	      (equal line "THE ACTORS LIST"))
-      (dotimes (i 4)
-	(read-line stream nil))
-      (return (file-position stream)))))
-
-(define-lazy-slot actors-list data-end
-    "Returns the offset after the last record."
-  (file-position stream (- (imdb::file-length instance) 100000))
-  (do-lines stream () (null line)
-    (when (equal line "SUBMITTING UPDATES")
-      (dotimes (i 3)
-	(back-line stream))
-      (return (file-position stream)))))
-
-(defun actor-line-p (line)
-  "Returns whether a given line is the start of a record."
+(defmethod record-line-p ((actors-list actors-list) line)
   (and (> (length line) 0) (char/= (aref line 0) #\Tab)))
 
-(defmethod read-until-record ((actors-list actors-list) stream)
-  "Advances the stream to the next record and returns the next record's actor."
-  (back-char stream)
-  (unless (char= (read-char stream) #\Newline)
-    (read-line stream nil))
-  (let ((begin-of-line (file-position stream)))
-    (do-lines stream () (null line)
-      (when (actor-line-p line)
-	(file-position stream begin-of-line)
-	(return-from read-until-record
-	  (if (end-of-data-p actors-list begin-of-line)
-	      nil
-	      (subseq line 0 (position #\Tab line)))))
-      (setf begin-of-line (file-position stream)))))
+(defmethod read-until-record ((actors-list actors-list) stream &key)
+  (call-next-method actors-list stream
+		    :extract-id-fn (lambda (line) (subseq line 0 (position #\Tab line)))))
 
 (defun delete-duplicates-in-sorted-list (list &key (test #'eql))
   "Deletes all duplicates in a sorted list (more efficient than delete-duplicates)."
@@ -163,45 +122,20 @@
 	    (when (or (null (cdr cell)) (not (funcall test (car cell) (cadr cell))))
 	      (list (car cell)))) list))
 
-(defmethod read-record ((actors-list actors-list) actor stream)
-  "Advances the stream to the next record and returns the current record."
-  (when (end-of-data-p actors-list (file-position stream))
-    (return-from read-record nil))
-  (let ((record ""))
-    (do-lines stream ((i 0 (1+ i))) nil
-      (when (and (> i 0) (actor-line-p line))
-	(back-line stream)
-	(setf record (subseq record (position #\Tab record)))
-	(return))
-      (setf record (concatenate 'string record line)))
-    (setf record (mapcan (lambda (line) (handler-case
-					    (list (make-instance 'role :actor actor :line line))
+(defmethod read-record ((actors-list actors-list) actor stream &key)
+  (flet ((extract-record-fn (record)
+	   (setf record (subseq record (position #\Tab record)))
+	   (setf record
+		 (mapcan (lambda (line) (handler-case
+					    (list (make-instance 'role
+								 :actor actor :line line))
 					  (bad-line-error ())))
 			 (split-sequence:split-sequence #\Tab record :remove-empty-subseqs t)))
-    (delete-duplicates-in-sorted-list record :test #'role=)))
+	   (delete-duplicates-in-sorted-list record :test #'role=)))
+    (call-next-method actors-list actor stream :extract-record-fn #'extract-record-fn)))
 
-(defmethod do-search ((actors-list actors-list) (actor actor))
-  "Returns the record for a specified actor."
-  (show-notice actors-list)
-  (with-open-list actors-list
-    (let ((actor-name (name actor)))
-      (labels ((binary-search (min max)
-		 (when (> min max)
-		   (return-from binary-search nil))
-		 (let ((mid (floor (+ min max) 2)))
-		   (file-position stream mid)
-		   (let* ((current-actor (read-until-record actors-list stream))
-			  (less (string<= actor-name current-actor))
-			  (new-min (if less min mid))
-			  (new-max (if less mid max)))
-		     (when (and (= min new-min) (= max new-max))
-		       (return-from binary-search nil))
-		     (when (equal actor-name current-actor)
-		       (return-from binary-search (read-record actors-list actor stream)))
-		     (file-position stream new-min)
-		     (binary-search new-min new-max)))))
-	(file-position stream (data-start actors-list))
-	(binary-search (data-start actors-list) (data-end actors-list))))))
+(defmethod do-search ((actors-list actors-list) (actor actor) &key)
+  (call-next-method actors-list actor :id (name actor)))
 
 (defun file-size-string (bytes)
   "Returns a human-readable file size."
@@ -237,11 +171,11 @@
 	      (end-of-data-p actors-list (file-position stream))
 	    (when (= (mod lines 500000) 0)
 	      (change-progress (- (file-position stream) partition-start)))
-	    (when (and (> (file-position stream) partition-end) (actor-line-p line))
-	      (return))
+	    (when (and (> (file-position stream) partition-end)
+		       (record-line-p actors-list line)) (return))
 	    (when (> (length line) 0)
 	      (setf current-entry line)
-	      (when (actor-line-p line)
+	      (when (record-line-p actors-list line)
 		(let ((tab-pos (position #\Tab line)))
 		  (setf current-actor (subseq line 0 tab-pos))
 		  (setf current-entry (subseq line tab-pos))))
