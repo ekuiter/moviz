@@ -1,39 +1,4 @@
-(in-package :actor-list)
-
-;;; Helpers
-
-(defun back-char (stream)
-  "Undo a read-char operation."
-  (let ((pos (file-position stream)))
-    (when (> pos 0)
-      (file-position stream (- pos 1))
-      (peek-char nil stream))))
-
-(defun back-line (stream)
-  "Undo a read-line operation (jumps to begin of line)."
-  (dotimes (i 2)
-    (do ((ch (back-char stream) (back-char stream)))
-	((char= ch #\Newline))))
-  (read-char stream nil))
-
-(defmacro with-open-actor-list (actor-list &body body)
-  "Creates a stream for an actor list."
-  `(with-open-file (stream (file-name ,actor-list) :external-format :iso-8859-1) ,@body))
-
-(defmacro define-lazy-slot (slot documentation &body body)
-  "Defines an accessor that only computes its value only once."
-  `(defmethod ,slot ((actor-list actor-list))
-     ,documentation
-     (with-slots (file-name ,slot) actor-list
-       (or ,slot (setf ,slot (with-open-actor-list actor-list ,@body))))))
-
-(defmacro do-lines (stream var-init-steps end-test &body body)
-  "Iterates over a file line by line."
-  `(do ((line (read-line ,stream nil) (read-line ,stream nil)) ,@var-init-steps)
-       (,end-test)
-     ,@body))
-
-;;; Classes
+(in-package :imdb)
 
 (defclass actor ()
   ((first-name :initarg :first-name
@@ -65,17 +30,7 @@
 	    :initform nil
 	    :reader billing)))
 
-(defclass actor-list ()
-  ((file-name :initarg :file-name
-	      :initform (error "Must supply file name")
-	      :reader file-name)
-   (file-length :initform nil)
-   (data-start :initform nil)
-   (data-end :initform nil)
-   (notice-shown :initform nil
-		 :allocation :class)))
-
-;;; Methods
+(defclass actors-list (imdb-list) ())
 
 (defmethod initialize-instance :after ((actor actor) &key name)
   "Initializes an actor."
@@ -165,21 +120,7 @@
   "Tests whether a role is less than another."
   (< (role-score role-1) (role-score role-2)))
 
-(defmethod initialize-instance :after ((actor-list actor-list) &key)
-  "Initializes an actor list."
-  (unless (probe-file (file-name actor-list))
-    (error "actor list file not found. check (ccl:current-directory)")))
-
-(defmethod show-notice ((actor-list actor-list))
-  (unless (slot-value actor-list 'notice-shown)
-    (format t "Information courtesy of IMDb (http://www.imdb.com). Used with permission.~%")
-    (setf (slot-value actor-list 'notice-shown) t)))
-
-(define-lazy-slot file-length
-    "Returns the file length."
-  (cl:file-length stream))
-
-(define-lazy-slot data-start
+(define-lazy-slot actors-list data-start
     "Returns the offset of the first record."
   (do-lines stream () (null line)
     (when (or (equal line "THE ACTRESSES LIST")
@@ -188,28 +129,20 @@
 	(read-line stream nil))
       (return (file-position stream)))))
 
-(define-lazy-slot data-end
+(define-lazy-slot actors-list data-end
     "Returns the offset after the last record."
-  (file-position stream (- (file-length actor-list) 100000))
+  (file-position stream (- (imdb::file-length instance) 100000))
   (do-lines stream () (null line)
     (when (equal line "SUBMITTING UPDATES")
       (dotimes (i 3)
 	(back-line stream))
       (return (file-position stream)))))
 
-(defmethod data-length ((actor-list actor-list))
-  "Returns the data length."
-  (- (data-end actor-list) (data-start actor-list)))
-
 (defun actor-line-p (line)
   "Returns whether a given line is the start of a record."
   (and (> (length line) 0) (char/= (aref line 0) #\Tab)))
 
-(defmethod end-of-data-p ((actor-list actor-list) pos)
-  "Returns whether the given offset is after the last record."
-  (> pos (data-end actor-list)))
-
-(defmethod read-until-record ((actor-list actor-list) stream)
+(defmethod read-until-record ((actors-list actors-list) stream)
   "Advances the stream to the next record and returns the next record's actor."
   (back-char stream)
   (unless (char= (read-char stream) #\Newline)
@@ -219,7 +152,7 @@
       (when (actor-line-p line)
 	(file-position stream begin-of-line)
 	(return-from read-until-record
-	  (if (end-of-data-p actor-list begin-of-line)
+	  (if (end-of-data-p actors-list begin-of-line)
 	      nil
 	      (subseq line 0 (position #\Tab line)))))
       (setf begin-of-line (file-position stream)))))
@@ -230,9 +163,9 @@
 	    (when (or (null (cdr cell)) (not (funcall test (car cell) (cadr cell))))
 	      (list (car cell)))) list))
 
-(defmethod read-record ((actor-list actor-list) actor stream)
+(defmethod read-record ((actors-list actors-list) actor stream)
   "Advances the stream to the next record and returns the current record."
-  (when (end-of-data-p actor-list (file-position stream))
+  (when (end-of-data-p actors-list (file-position stream))
     (return-from read-record nil))
   (let ((record ""))
     (do-lines stream ((i 0 (1+ i))) nil
@@ -247,28 +180,28 @@
 			 (split-sequence:split-sequence #\Tab record :remove-empty-subseqs t)))
     (delete-duplicates-in-sorted-list record :test #'role=)))
 
-(defmethod do-search ((actor-list actor-list) (actor actor))
+(defmethod do-search ((actors-list actors-list) (actor actor))
   "Returns the record for a specified actor."
-  (show-notice actor-list)
-  (with-open-actor-list actor-list
+  (show-notice actors-list)
+  (with-open-list actors-list
     (let ((actor-name (name actor)))
       (labels ((binary-search (min max)
 		 (when (> min max)
 		   (return-from binary-search nil))
 		 (let ((mid (floor (+ min max) 2)))
 		   (file-position stream mid)
-		   (let* ((current-actor (read-until-record actor-list stream))
+		   (let* ((current-actor (read-until-record actors-list stream))
 			  (less (string<= actor-name current-actor))
 			  (new-min (if less min mid))
 			  (new-max (if less mid max)))
 		     (when (and (= min new-min) (= max new-max))
 		       (return-from binary-search nil))
 		     (when (equal actor-name current-actor)
-		       (return-from binary-search (read-record actor-list actor stream)))
+		       (return-from binary-search (read-record actors-list actor stream)))
 		     (file-position stream new-min)
 		     (binary-search new-min new-max)))))
-	(file-position stream (data-start actor-list))
-	(binary-search (data-start actor-list) (data-end actor-list))))))
+	(file-position stream (data-start actors-list))
+	(binary-search (data-start actors-list) (data-end actors-list))))))
 
 (defun file-size-string (bytes)
   "Returns a human-readable file size."
@@ -283,25 +216,25 @@
        finally (return t))))
 
 (defmethod inverse-search-partition
-    ((actor-list actor-list) (movies cons) n i progress progress-changed)
+    ((actors-list actors-list) (movies cons) n i progress progress-changed)
   "Returns roles in a partition matching the specified movies."
   (when (< n 1) (error "at least one partition needed"))
   (when (or (< i 0) (>= i n)) (error "illegal partition index"))
   (let* ((results (make-hash-table :test 'equal))
-	 (partition-step (floor (data-length actor-list) n))
-	 (partition-start (+ (data-start actor-list) (* partition-step i)))
+	 (partition-step (floor (data-length actors-list) n))
+	 (partition-start (+ (data-start actors-list) (* partition-step i)))
 	 (partition-end (if (= i (- n 1))
-			    (data-end actor-list)
-			    (+ (data-start actor-list) (* partition-step (1+ i))))))
+			    (data-end actors-list)
+			    (+ (data-start actors-list) (* partition-step (1+ i))))))
     (labels ((change-progress (new-progress)
 	       (setf (elt progress i) new-progress)
 	       (ccl:signal-semaphore progress-changed)))
-      (with-open-actor-list actor-list
+      (with-open-list actors-list
 	(file-position stream partition-start)
-	(read-until-record actor-list stream)
+	(read-until-record actors-list stream)
 	(let ((current-actor "") (current-entry ""))
 	  (do-lines stream ((lines 0 (1+ lines)))
-	      (end-of-data-p actor-list (file-position stream))
+	      (end-of-data-p actors-list (file-position stream))
 	    (when (= (mod lines 500000) 0)
 	      (change-progress (- (file-position stream) partition-start)))
 	    (when (and (> (file-position stream) partition-end) (actor-line-p line))
@@ -330,18 +263,18 @@
 							   :test #'role=)))
        finally (return results))))
 
-(defmethod inverse-search ((actor-list actor-list) movie &optional (n 4))
+(defmethod inverse-search ((actors-list actors-list) movie &optional (n 4))
   "Returns roles matching a specified movie."
-  (gethash movie (inverse-search actor-list (list movie) n)))
+  (gethash movie (inverse-search actors-list (list movie) n)))
 
-(defmethod inverse-search ((actor-list actor-list) (movies cons) &optional (n 4))
+(defmethod inverse-search ((actors-list actors-list) (movies cons) &optional (n 4))
   "Returns roles matching the specified movies."
   (assert movies)
-  (show-notice actor-list)
+  (show-notice actors-list)
   (format t "Inverse searching ~a for ~r movie~:*~p ...~%"
-	  (file-name actor-list) (length movies))
+	  (file-name actors-list) (length movies))
   (labels ((fn (i progress progress-changed)
-	     (inverse-search-partition actor-list movies n i progress progress-changed)))
+	     (inverse-search-partition actors-list movies n i progress progress-changed)))
     (let* ((results (make-hash-table :test 'eq))
 	   (progress (make-array n :initial-element 0))
 	   (progress-changed (ccl:make-semaphore))
@@ -352,7 +285,7 @@
 	 while (>= (loop for i across progress minimize i) 0) do
 	   (when (= (mod i n) (- n 1))
 	     (format t "~2d% " (floor (* (loop for i across progress sum i) 100)
-				      (data-length actor-list))))
+				      (data-length actors-list))))
 	   (ccl:wait-on-semaphore progress-changed))
       (format t "~&")
       (loop for process in processes do

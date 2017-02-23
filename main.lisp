@@ -5,10 +5,10 @@
 (defclass movie-node (node movie)
   ((actors :initform :undefined)
    (actresses :initform :undefined)
-   (actor-list :allocation :class
-	       :initform (make-instance 'actor-list :file-name "imdb/actors.list"))
-   (actress-list :allocation :class
-		 :initform (make-instance 'actor-list :file-name "imdb/actresses.list"))))
+   (actors-list :allocation :class
+	       :initform (make-instance 'actors-list :file-name "imdb/actors.list"))
+   (actresses-list :allocation :class
+		 :initform (make-instance 'actors-list :file-name "imdb/actresses.list"))))
 
 (defclass role-edge (edge)
   ((role-1 :initarg :role-1
@@ -76,8 +76,8 @@
 		   (setf (slot-value node ',slot) node-results)))
 	    nil)))
 
-(define-lazy-slot actors actor-list)
-(define-lazy-slot actresses actress-list)
+(define-lazy-slot actors actors-list)
+(define-lazy-slot actresses actresses-list)
 
 (defmethod total-actors ((node movie-node))
   (+ (length (actors node)) (length (actresses node))))
