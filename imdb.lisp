@@ -57,6 +57,15 @@
   "Tests whether two movies are equal."
   (equal (title movie-1) (title movie-2)))
 
+(defmethod summary (object)
+  "Returns a summary of an object."
+  (format nil "~a" object))
+
+(defun summarize-all (list)
+  "Prints a summary of a list."
+  (loop for element in list do
+       (format t "~a~%" (summary element))))
+
 (defmacro make-list-instance (class &optional file-name)
   "Creates a list file."
   `(make-instance ',(intern (format nil "~a-LIST" class))
@@ -105,7 +114,7 @@
   (>= pos (data-end list)))
 
 (defgeneric record-line-p (list line)
-  (:documentation "Returns whether a given line is the start of a record."))
+  (:documentation "Returns whether a given line is the start of or after the last record."))
 
 (defmethod read-until-record ((list imdb-list) stream &key extract-id-fn)
   "Advances the stream to the next record and returns the next record's id."
@@ -135,8 +144,17 @@
 	(setf record (concatenate 'string record line (list #\Newline)))))
     (funcall extract-record-fn record)))
 
-(defmethod do-search ((list imdb-list) id-object &key id)
-  "Returns the record for a specified id object."
+(defmethod do-search-linear ((list imdb-list) id-object &key id (id= #'equal))
+  "Returns all records for a specified id object using linear search."
+  (show-notice list)
+  (with-open-list list
+    (file-position stream (data-start list))
+    (loop for current-id = (read-until-record list stream) while current-id
+	 if (funcall id= id current-id) collect (read-record list id-object stream)
+	 else do (read-char stream))))
+
+(defmethod do-search-binary ((list imdb-list) id-object &key id (id= #'equal) (id<= #'string<=))
+  "Returns the record for a specified id object using binary search."
   (show-notice list)
   (with-open-list list
     (labels ((binary-search (min max)
@@ -145,12 +163,12 @@
 	       (let ((mid (floor (+ min max) 2)))
 		 (file-position stream mid)
 		 (let* ((current-id (read-until-record list stream))
-			(less (string<= id current-id))
+			(less (funcall id<= id current-id))
 			(new-min (if less min mid))
 			(new-max (if less mid max)))
 		   (when (and (= min new-min) (= max new-max))
 		     (return-from binary-search nil))
-		   (when (equal id current-id)
+		   (when (funcall id= id current-id)
 		     (return-from binary-search (read-record list id-object stream)))
 		   (file-position stream new-min)
 		   (binary-search new-min new-max)))))

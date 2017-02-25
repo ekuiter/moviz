@@ -134,8 +134,8 @@
 	   (delete-duplicates-in-sorted-list record :test #'role=)))
     (call-next-method actors-list actor stream :extract-record-fn #'extract-record-fn)))
 
-(defmethod do-search ((actors-list actors-list) (actor actor) &key)
-  (call-next-method actors-list actor :id (name actor)))
+(defmethod do-search ((actors-list actors-list) (actor actor))
+  (do-search-binary actors-list actor :id (name actor)))
 
 (defun file-size-string (bytes)
   "Returns a human-readable file size."
