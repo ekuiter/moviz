@@ -33,7 +33,9 @@
 
 (defmacro with-open-list (file-name &body body)
   "Creates a stream for a list file."
-  `(with-open-file (stream (file-name ,file-name) :external-format :iso-8859-1) ,@body))
+  `(with-open-file (stream (file-name ,file-name) :external-format :iso-8859-1)
+     (declare (ignorable stream))
+     ,@body))
 
 (defmacro define-lazy-slot (class slot documentation &body body)
   "Defines an accessor that only computes its value only once."
@@ -56,15 +58,6 @@
 (defmethod movie= ((movie-1 movie) (movie-2 movie))
   "Tests whether two movies are equal."
   (equal (title movie-1) (title movie-2)))
-
-(defmethod summary (object)
-  "Returns a summary of an object."
-  (format nil "~a" object))
-
-(defun summarize-all (list)
-  "Prints a summary of a list."
-  (loop for element in list do
-       (format t "~a~%" (summary element))))
 
 (defmacro make-list-instance (class &optional file-name)
   "Creates a list file."
@@ -113,6 +106,12 @@
   "Returns whether the given offset is after the last record."
   (>= pos (data-end list)))
 
+(defmethod check-record ((list imdb-list) id-object bound &optional (offset 1000))
+  "Returns the first or last record in a list, useful for debugging."
+  (with-open-list list
+    (file-position stream (if (eql bound 'start) (data-start list) (- (data-end list) offset)))
+    (values (read-until-record list stream) (read-record list id-object stream))))
+
 (defgeneric record-line-p (list line)
   (:documentation "Returns whether a given line is the start of or after the last record."))
 
@@ -136,7 +135,7 @@
   (when (end-of-data-p list (file-position stream))
     (return-from read-record nil))
   (let ((record ""))
-    (do-lines stream ((i 0 (1+ i))) nil
+    (do-lines stream ((i 0 (1+ i))) (null line)
       (when (and (> i 0) (record-line-p list line))
 	(back-line stream)
 	(return))

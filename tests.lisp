@@ -5,7 +5,9 @@
 (defun run-tests ()
   "Runs all tests."
   (loop for test in *tests*
-     for result = (handler-case (funcall test) (simple-error (e) (warn "~a" e)))
+     for result = (handler-case (progn
+				  (format t "Testing ~a ...~%" test)
+				  (funcall test)) (simple-error (e) (warn "~a" e)))
      sum (if result 1 0) into passed
      sum 1 into total
      do
@@ -41,4 +43,24 @@
     (assert (movie= movie (movie av)))
     (assert (null (episode av)))
     (assert (= (length (notes av)) 3))
-    (assert (= (search "Since being" (first (notes av))) 0))))
+    (assert (equal (search "Since being" (first (notes av))) 0))))
+
+(deftest goofs-list-do-search
+  (let* ((movie (make-instance 'movie :title "Buffy the Vampire Slayer"))
+	 (results (do-search (make-list-instance goofs) movie))
+	 (goof (third results)))
+    (assert (= (length results) 137))
+    (assert (movie= movie (movie goof)))
+    (assert (equal (episode goof) "After Life (#6.3)"))
+    (assert (= (length (notes goof)) 3))
+    (assert (equal (search "CREW: When" (first (notes goof))) 0))))
+
+(deftest trivia-list-do-search
+  (let* ((movie (make-instance 'movie :title "Supernatural"))
+	 (results (do-search (make-list-instance trivia) movie))
+	 (trivia (first results)))
+    (assert (= (length results) 254))
+    (assert (movie= movie (movie trivia)))
+    (assert (null (episode trivia)))
+    (assert (= (length (notes trivia)) 99))
+    (assert (equal (search "SPOILER: Early on" (first (notes trivia))) 0))))

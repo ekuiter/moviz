@@ -27,4 +27,41 @@ NIL
 
 To open the graph again, simply run `./my-graph`.
 
+### Other features
+
+Search for all movies an actor played in:
+```
+? (summarize-all (do-search (make-list-instance actors) (make-instance 'actor :name "Amell, Stephen")))
+#<ROLE Amell, Stephen in [...]
+```
+
+Search for all actresses starring in a movie:
+```
+? (summarize-all (inverse-search (make-list-instance actors "actresses") (make-instance 'movie :title "Harry Potter and the Chamber of Secrets")))
+Inverse searching imdb/actresses.list for one movie ...
+ 0% 11% 27% 43% 59% 75% 91% 
+#<ROLE Bates, Daisy (I) in [...]
+```
+
+Search for alternate versions, goofs and trivia (`alternate-versions`, `goofs` and `trivia` respectively):
+```
+? (summarize-all (do-search (make-list-instance trivia) (make-instance 'movie :title "Supernatural")))
+Supernatural
+============
+SPOILER: Early on in the series, [...]
+```
+
+Run some tests:
+```
+? (tests:run-tests)
+Testing TRIVIA-LIST-DO-SEARCH ...
+Testing GOOFS-LIST-DO-SEARCH ...
+Testing ALTERNATE-VERSIONS-LIST-DO-SEARCH ...
+Testing ACTORS-LIST-INVERSE-SEARCH ...
+Inverse searching imdb/actresses.list for one movie ...
+ 0% 11% 27% 43% 59% 75% 91% 
+Testing ACTORS-LIST-DO-SEARCH ...
+5 of 5 tests passed.
+```
+
 © Elias Kuiter 2017 - elias-kuiter.de

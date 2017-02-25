@@ -9,7 +9,8 @@
   (:export :actor :movie :role :actors-list :do-search :inverse-search
 	   :name :readable-name :title :billing :actor= :actor< :movie=
 	   :role-score :role= :role< :alternate-versions-list :make-list-instance
-	   :alternate-version :episode :notes :summary :summarize-all)
+	   :alternate-version :episode :notes :summary :summarize :summarize-all
+	   :goofs-list :goof :trivia-list :trivia)
   (:shadow :file-length))
 
 (defpackage :graph
@@ -25,8 +26,11 @@
   (:export :run-tests))
 
 (load "imdb")
+(load "movie-information-list")
 (load "actors-list")
 (load "alternate-versions-list")
+(load "goofs-list")
+(load "trivia-list")
 (load "graph")
 (load "main")
 (load "tests")
