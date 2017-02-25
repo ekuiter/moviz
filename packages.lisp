@@ -8,7 +8,8 @@
   (:use :common-lisp :split-sequence)
   (:export :actor :movie :role :actors-list :do-search :inverse-search
 	   :name :readable-name :title :billing :actor= :actor< :movie=
-	   :role-score :role= :role< :alternate-versions-list :make-list-instance)
+	   :role-score :role= :role< :alternate-versions-list :make-list-instance
+	   :alternate-version :episode :notes :summary :summarize-all)
   (:shadow :file-length))
 
 (defpackage :graph
@@ -19,8 +20,13 @@
 (defpackage :main
   (:use :common-lisp :imdb :graph))
 
+(defpackage :tests
+  (:use :common-lisp :imdb :graph :main)
+  (:export :run-tests))
+
 (load "imdb")
 (load "actors-list")
 (load "alternate-versions-list")
 (load "graph")
 (load "main")
+(load "tests")
