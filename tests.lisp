@@ -8,13 +8,9 @@
      for result = (handler-case (progn
 				  (format t "Testing ~a ...~%" test)
 				  (funcall test)) (simple-error (e) (warn "~a" e)))
-     sum (if result 1 0) into passed
-     sum 1 into total
-     do
-       (unless result
-	 (warn "The test ~a failed." test))
-     finally
-       (format t "~a of ~a tests passed." passed total)))
+     sum (if result 1 0) into passed sum 1 into total
+     do (unless result (warn "The test ~a failed." test))
+     finally (format t "~a of ~a tests passed." passed total)))
 
 (defmacro deftest (name &body body)
   `(progn
@@ -45,6 +41,16 @@
     (assert (= (length (notes av)) 3))
     (assert (equal (search "Since being" (first (notes av))) 0))))
 
+(deftest crazy-credits-list-do-search
+  (let* ((movie (make-instance 'movie :title "Supernatural"))
+	 (results (do-search (make-list-instance crazy-credits) movie))
+	 (cc (first results)))
+    (assert (= (length results) 18))
+    (assert (movie= movie (movie cc)))
+    (assert (null (episode cc)))
+    (assert (= (length (notes cc)) 2))
+    (assert (equal (search "The logo" (first (notes cc))) 0))))
+
 (deftest goofs-list-do-search
   (let* ((movie (make-instance 'movie :title "Buffy the Vampire Slayer"))
 	 (results (do-search (make-list-instance goofs) movie))
@@ -55,6 +61,16 @@
     (assert (= (length (notes goof)) 3))
     (assert (equal (search "CREW: When" (first (notes goof))) 0))))
 
+(deftest soundtracks-list-do-search
+  (let* ((movie (make-instance 'movie :title "Game of Thrones"))
+	 (results (do-search (make-list-instance soundtracks) movie))
+	 (soundtracks (first results)))
+    (assert (= (length results) 63))
+    (assert (movie= movie (movie soundtracks)))
+    (assert (null (episode soundtracks)))
+    (assert (= (length (notes soundtracks)) 1))
+    (assert (equal (search "\"Main Title\"" (first (notes soundtracks))) 0))))
+
 (deftest trivia-list-do-search
   (let* ((movie (make-instance 'movie :title "Supernatural"))
 	 (results (do-search (make-list-instance trivia) movie))
@@ -64,3 +80,13 @@
     (assert (null (episode trivia)))
     (assert (= (length (notes trivia)) 99))
     (assert (equal (search "SPOILER: Early on" (first (notes trivia))) 0))))
+
+(deftest quotes-list-do-search
+  (let* ((movie (make-instance 'movie :title "Game of Thrones"))
+	 (results (do-search (make-list-instance quotes) movie))
+	 (quotes (first results)))
+    (assert (= (length results) 61))
+    (assert (movie= movie (movie quotes)))
+    (assert (null (episode quotes)))
+    (assert (= (length (notes quotes)) 21))
+    (assert (equal (search "[repeated line]" (first (notes quotes))) 0))))

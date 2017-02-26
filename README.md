@@ -31,21 +31,21 @@ To open the graph again, simply run `./my-graph`.
 
 Search for all movies an actor played in:
 ```
-? (summarize-all (do-search (make-list-instance actors) (make-instance 'actor :name "Amell, Stephen")))
+? (summarize (do-search (make-list-instance actors) (make-instance 'actor :name "Amell, Stephen")))
 #<ROLE Amell, Stephen in [...]
 ```
 
 Search for all actresses starring in a movie:
 ```
-? (summarize-all (inverse-search (make-list-instance actors "actresses") (make-instance 'movie :title "Harry Potter and the Chamber of Secrets")))
+? (summarize (inverse-search (make-list-instance actors "actresses") (make-instance 'movie :title "Harry Potter and the Chamber of Secrets")))
 Inverse searching imdb/actresses.list for one movie ...
  0% 11% 27% 43% 59% 75% 91% 
 #<ROLE Bates, Daisy (I) in [...]
 ```
 
-Search for alternate versions, goofs and trivia (`alternate-versions`, `goofs` and `trivia` respectively):
+Search for `alternate-versions`, `crazy-credits` `goofs`, `soundtracks`, `trivia` and `quotes`:
 ```
-? (summarize-all (do-search (make-list-instance trivia) (make-instance 'movie :title "Supernatural")))
+? (summarize (do-search (make-list-instance trivia) (make-instance 'movie :title "Supernatural")))
 Supernatural
 ============
 SPOILER: Early on in the series, [...]

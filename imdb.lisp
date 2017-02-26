@@ -106,10 +106,22 @@
   "Returns whether the given offset is after the last record."
   (>= pos (data-end list)))
 
+(defmethod summary (object &key)
+  "Returns a summary of an object."
+  (format nil "~a" object))
+
+(defmethod summarize (object)
+  "Prints a summary of an object."
+  (format t "~a~%" (summary object)))
+
+(defmethod summarize ((list cons))
+  "Prints a summary of a list."
+  (loop for element in list do (summarize element)))
+
 (defmethod check-record ((list imdb-list) id-object bound &optional (offset 1000))
   "Returns the first or last record in a list, useful for debugging."
   (with-open-list list
-    (file-position stream (if (eql bound 'start) (data-start list) (- (data-end list) offset)))
+    (file-position stream (if (eql bound :start) (data-start list) (- (data-end list) offset)))
     (values (read-until-record list stream) (read-record list id-object stream))))
 
 (defgeneric record-line-p (list line)
@@ -129,7 +141,8 @@
 	    (funcall extract-id-fn line))))
       (setf begin-of-line (file-position stream)))))
 
-(defmethod read-record ((list imdb-list) id-object stream &key extract-record-fn)
+(defmethod read-record ((list imdb-list) id-object stream
+			&key extract-record-fn include-empty-lines)
   "Advances the stream to the next record and returns the current record."
   (declare (ignore id-object))
   (when (end-of-data-p list (file-position stream))
@@ -139,7 +152,7 @@
       (when (and (> i 0) (record-line-p list line))
 	(back-line stream)
 	(return))
-      (when (> (length line) 0)
+      (when (or include-empty-lines (> (length line) 0))
 	(setf record (concatenate 'string record line (list #\Newline)))))
     (funcall extract-record-fn record)))
 
