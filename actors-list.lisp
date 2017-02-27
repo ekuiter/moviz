@@ -26,12 +26,18 @@
 	    :reader billing)))
 
 (defclass actors-list (imdb-list) ())
+(defclass actresses-list (actors-list) ())
 
 (define-data-bound-slot actors-list start ("THE ACTRESSES LIST" "THE ACTORS LIST") 4)
 (define-data-bound-slot actors-list end "SUBMITTING UPDATES" 3)
 
-(defmethod initialize-instance :after ((actor actor) &key name)
+(defmethod id-class ((actors-list actors-list)) 'actor)
+(defmethod inverse-id-class ((actors-list actors-list)) 'movie)
+(defmethod record-class ((actors-list actors-list)) 'role)
+
+(defmethod initialize-instance :after ((actor actor) &key name string)
   "Initializes an actor."
+  (when string (setf name string))
   (when name
     (destructuring-bind (last-name first-name)
 	(if (find #\, name) (split-sequence:split-sequence #\, name) (list "" name))

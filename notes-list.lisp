@@ -18,8 +18,7 @@
     "Returns the offset after the last record."
     (file-length instance))
 
-(defgeneric record-class (notes-list)
-  (:documentation "Returns the associated record class."))
+(defmethod id-class ((notes-list notes-list)) 'movie)
 
 (defmethod print-object ((info notes-record) stream)
   "Prints a notes record."

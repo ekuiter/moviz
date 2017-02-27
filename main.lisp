@@ -6,9 +6,9 @@
   ((actors :initform :undefined)
    (actresses :initform :undefined)
    (actors-list :allocation :class
-	       :initform (make-list-instance actors "actors"))
+	       :initform (make-list-instance 'actors))
    (actresses-list :allocation :class
-		 :initform (make-list-instance actors "actresses"))))
+		 :initform (make-list-instance 'actresses))))
 
 (defclass role-edge (edge)
   ((role-1 :initarg :role-1

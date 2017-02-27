@@ -4,6 +4,7 @@
 
 (defclass movie ()
   ((title :initarg :title
+	  :initarg :string
 	  :initform (error "Must supply title")
 	  :reader title)))
 
@@ -59,10 +60,10 @@
   "Tests whether two movies are equal."
   (equal (title movie-1) (title movie-2)))
 
-(defmacro make-list-instance (class &optional file-name)
+(defun make-list-instance (class &optional file-name)
   "Creates a list file."
-  `(make-instance ',(intern (format nil "~a-LIST" class))
-		  :file-name ,(format nil "~a~(~a~).list" +imdb-path+
+  (make-instance (intern (format nil "~:@(~a~)-LIST" class))
+		  :file-name (format nil "~a~(~a~).list" +imdb-path+
 				      (if file-name file-name class))))
 
 (defmethod initialize-instance :after ((list imdb-list) &key)
@@ -74,6 +75,15 @@
   (unless (slot-value list 'notice-shown)
     (format t "Information courtesy of IMDb (http://www.imdb.com). Used with permission.~%")
     (setf (slot-value list 'notice-shown) t)))
+
+(defgeneric id-class (imdb-list)
+  (:documentation "Returns the associated id class."))
+
+(defgeneric inverse-id-class (imdb-list)
+  (:documentation "Returns the associated id class for inverse searching."))
+
+(defgeneric record-class (imdb-list)
+  (:documentation "Returns the associated record class."))
 
 (define-lazy-slot imdb-list file-length
     "Returns the file length."
