@@ -57,7 +57,7 @@
   (setf *classes* (mapcar (lambda (class) (intern (string-upcase class) :app))
 			  (split-sequence #\/ classes :remove-empty-subseqs t))))
 
-(def-graph-route (:get "/clear") (req res)
+(def-graph-route (:get "/clear/") (req res)
   (app:clear-graph))
 
 (def-graph-route (:get "/add/(.*)") (req res (movies))

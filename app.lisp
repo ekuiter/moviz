@@ -28,7 +28,7 @@
 	    (with-slots (vertices edges) graph
 	      (setf vertices (slot-value parent-graph 'vertices)
 		    edges (slot-value parent-graph 'edges))))
-	  (defmethod ,(intern (concatenate 'string "MAKE-" (symbol-name class)))
+	  (defmethod ,(intern (concatenate 'string "MAKE-" (symbol-name class)) :app)
 	      ((parent-graph movie-graph))
 	    (make-instance ',class :parent-graph parent-graph))))
 
@@ -41,10 +41,10 @@
 
 (defmacro make-graph (parent-graph &rest types)
   (unless types (return-from make-graph `(make-graph ,parent-graph unlabeled)))
-  (let ((class (intern (format nil "~{~a-~}GRAPH" types)))
+  (let ((class (intern (format nil "~{~a-~}GRAPH" types) :app))
 	(superclasses
 	 (mapcar (lambda (type)
-		   (intern (concatenate 'string (symbol-name type) "-GRAPH")))
+		   (intern (concatenate 'string (symbol-name type) "-GRAPH") :app))
 		 types)))
     `(progn ,(unless (= (length types) 1) `(defgraphclass ,class ,superclasses))
 	    (make-instance ',class :parent-graph ,parent-graph))))

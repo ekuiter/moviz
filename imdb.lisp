@@ -62,7 +62,7 @@
 
 (defun make-list-instance (class &optional file-name)
   "Creates a list file."
-  (make-instance (intern (format nil "~:@(~a~)-LIST" class))
+  (make-instance (intern (format nil "~:@(~a~)-LIST" class) :imdb)
 		  :file-name (format nil "~a~(~a~).list" +imdb-path+
 				      (if file-name file-name class))))
 
