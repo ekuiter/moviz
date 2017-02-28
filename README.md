@@ -11,8 +11,8 @@ Download ftp://ftp.fu-berlin.de/pub/misc/movies/database/ to the `imdb` director
 Run with `make run`, Clozure Common Lisp required. Then:
 
 ```
-? (in-package :main)
-#<Package "MAIN">
+? (in-package :app)
+#<Package "APP">
 ? (add-movies "House of Cards" "Person of Interest" "Westworld" "Supernatural" "Mr. Robot")
 Information courtesy of IMDb (http://www.imdb.com). Used with permission.
 Inverse searching imdb/actors.list for five movies ...

@@ -40,7 +40,7 @@
   (when string (setf name string))
   (when name
     (destructuring-bind (last-name first-name)
-	(if (find #\, name) (split-sequence:split-sequence #\, name) (list "" name))
+	(if (find #\, name) (split-sequence #\, name) (list "" name))
       (let ((paren-pos (position #\( first-name)))
 	(setf (slot-value actor 'first-name)
 	      (string-trim " " (subseq first-name 0 paren-pos)))
@@ -136,7 +136,7 @@
 					    (list (make-instance 'role
 								 :actor actor :line line))
 					  (bad-line-error ())))
-			 (split-sequence:split-sequence #\Tab record :remove-empty-subseqs t)))
+			 (split-sequence #\Tab record :remove-empty-subseqs t)))
 	   (delete-duplicates-in-sorted-list record :test #'role=)))
     (call-next-method actors-list actor stream :extract-record-fn #'extract-record-fn)))
 

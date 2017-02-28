@@ -4,7 +4,8 @@
   (ql:quickload :split-sequence)
   (ql:quickload :cl-ppcre)
   (ql:quickload :wookie)
-  (ql:quickload :cl-json))
+  (ql:quickload :cl-json)
+  (ql:quickload :cl-who))
 
 (defpackage :imdb
   (:use :common-lisp :split-sequence)
@@ -20,24 +21,26 @@
 (defpackage :graph
   (:use :common-lisp)
   (:export :graph :node :edge :node-1 :node-2 :add-node :add-edge :make-image
-	   :show :to-dot :compare :label :vertices :edges :label-too-long-error))
+	   :make-image :show :to-dot :compare :label :vertices :edges :label-too-long-error))
 
-(defpackage :main
-  (:use :common-lisp :imdb :graph))
+(defpackage :app
+  (:use :common-lisp :imdb :graph)
+  (:export :to-dot :make-image :show :current-graph :clear-graph :add-movies :save-and-quit
+	   :make-graph))
 
 (defpackage :tests
-  (:use :common-lisp :imdb :graph :main)
+  (:use :common-lisp :imdb)
   (:export :run-tests))
 
 (defpackage :server
-  (:use :common-lisp :imdb :wookie :wookie-plugin-export)
-  (:export serve)
+  (:use :common-lisp :split-sequence :wookie :wookie-plugin-export :cl-who)
+  (:export :serve)
   (:shadow :defroute))
 
 (load "imdb")
 (load "notes-list")
 (load "actors-list")
 (load "graph")
-(load "main")
+(load "app")
 (load "tests")
 (load "server")

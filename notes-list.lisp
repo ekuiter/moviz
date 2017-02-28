@@ -59,7 +59,7 @@
     (setf extract-notes-fn
 	  (lambda (notes)
 	    (setf notes (cl-ppcre:regex-replace-all "\\n " notes (char-to-string #\Tab)))
-	    (setf notes (split-sequence:split-sequence #\Newline notes :remove-empty-subseqs t))
+	    (setf notes (split-sequence #\Newline notes :remove-empty-subseqs t))
 	    (mapcar (lambda (note) (cl-ppcre:regex-replace-all "\\t" (subseq note 2)
 							       delimiter)) notes))))
   (flet ((extract-record-fn (record)
@@ -119,7 +119,7 @@
 (defmethod read-record ((quotes-list quotes-list) movie stream &key)
   (flet ((extract-notes-fn (notes)
 	   (setf notes (cl-ppcre:regex-replace-all "\\n\\n" notes (char-to-string #\Tab)))
-	   (setf notes (split-sequence:split-sequence #\Tab notes :remove-empty-subseqs t))
+	   (setf notes (split-sequence #\Tab notes :remove-empty-subseqs t))
 	   (setf notes (mapcar (lambda (note) (string-left-trim (list #\Newline) note)) notes))
 	   (remove "" notes :test #'equal)))
   (call-next-method quotes-list movie stream

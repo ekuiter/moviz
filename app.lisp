@@ -1,4 +1,4 @@
-(in-package :main)
+(in-package :app)
 
 (defclass movie-graph (graph) ())
 
@@ -44,7 +44,8 @@
   (let ((class (intern (format nil "~{~a-~}GRAPH" types)))
 	(superclasses
 	 (mapcar (lambda (type)
-		   (intern (concatenate 'string (symbol-name type) "-GRAPH"))) types)))
+		   (intern (concatenate 'string (symbol-name type) "-GRAPH")))
+		 types)))
     `(progn ,(unless (= (length types) 1) `(defgraphclass ,class ,superclasses))
 	    (make-instance ',class :parent-graph ,parent-graph))))
 
@@ -171,8 +172,8 @@
 (defmethod to-dot ((graph movie-graph) &key (stream t))
   (labels ((init-fn ()
 	     (let ((font-name "Helvetica"))
-	       (format stream "node [fontname=\"~a bold\"];~
-                               edge [fontname=\"~:*~a\"];" font-name)))
+	       (format stream "node [fontname=\"~a\"];~
+                               edge [fontname=\"~:*~a\"][fontsize=12];" font-name)))
 	   (edge-fn (make-edge-fn)
 	     (loop for (node-1 node-2) being the hash-keys in (slot-value graph 'edges)
 		using (hash-value edges) do
@@ -183,10 +184,16 @@
 		      (funcall make-edge-fn node-1 node-2 :label (short-label edges)))))))
     (call-next-method graph :stream stream :init-fn #'init-fn :edge-fn #'edge-fn)))
 
+(defmethod make-image ((graph movie-graph) file-name &key (format "png"))
+  (call-next-method graph file-name :format format :charset "latin1"))
+
 (defmethod show ((graph movie-graph) &key (open t) (format "png"))
   (call-next-method graph :open open :format format :charset "latin1"))
 
 (defvar *graph* (make-instance 'movie-graph))
+
+(defun current-graph ()
+  *graph*)
 
 (defun clear-graph ()
   (setf *graph* (make-instance 'movie-graph)))
