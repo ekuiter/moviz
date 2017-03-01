@@ -55,6 +55,37 @@
       (unless (find node-2 vertices) (add-node graph node-2))
       (push edge (gethash (to-key edge) edges)))))
 
+(defmethod subgraph ((graph graph) vertices edges)
+  (let ((subgraph (make-instance (type-of graph))))
+    (setf (slot-value subgraph 'vertices) vertices)
+    (loop for edge in edges do (add-edge subgraph edge))
+    subgraph))
+
+(defmethod filter-nodes ((graph graph) filter)
+  (let ((vertices (loop for node in (vertices graph)
+		     if (funcall filter node) collect node)))
+    (subgraph graph vertices
+	      (loop for edge in (edges graph)
+		 if (and (find (node-1 edge) vertices) (find (node-2 edge) vertices))
+		 collect edge))))
+
+(defmacro deffilter (name args type &body body)
+  (let ((symbol (intern (format nil "~:@(~a~)-FILTER" name))))
+    `(defun ,symbol ,args
+       (lambda (,type) (declare (ignorable ,type)) ,@body))))
+
+(defmacro def-boolean-filter (name logic found)
+  `(deffilter ,name (&rest filters) node-or-edge
+     (assert filters)
+     (loop for filter in filters
+	  ,logic (funcall filter node-or-edge) do (return ,found) finally (return ,(not found)))))
+
+(def-boolean-filter or when t)
+(def-boolean-filter and unless nil)
+
+(deffilter not (filter) node-or-edge
+  (not (funcall filter node-or-edge)))
+
 (define-condition label-too-long-error (error) ())
 
 (defmethod to-dot ((graph graph) &key (stream t) init-fn edge-fn)

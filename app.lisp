@@ -24,10 +24,10 @@
 (defmacro defgraphclass (class superclasses)
   `(progn (defclass ,class ,superclasses ())
 	  (defmethod initialize-instance :after ((graph ,class) &key parent-graph)
-	    (unless parent-graph (error "must supply parent graph"))
-	    (with-slots (vertices edges) graph
-	      (setf vertices (slot-value parent-graph 'vertices)
-		    edges (slot-value parent-graph 'edges))))
+	    (when parent-graph
+	      (with-slots (vertices edges) graph
+		(setf vertices (slot-value parent-graph 'vertices)
+		      edges (slot-value parent-graph 'edges)))))
 	  (defmethod ,(intern (concatenate 'string "MAKE-" (symbol-name class)) :app)
 	      ((parent-graph movie-graph))
 	    (make-instance ',class :parent-graph parent-graph))))
@@ -168,6 +168,9 @@
   (list :label (format nil "~{~a~^~%~}"
 		       (loop for edge in edges repeat 5	while (<= (role-edge-score edge) 15)
 			  collect (label edge)))))
+
+(deffilter movie (movie) node
+  (movie= movie node))
 
 (defmethod to-dot ((graph movie-graph) &key (stream t))
   (labels ((init-fn ()
