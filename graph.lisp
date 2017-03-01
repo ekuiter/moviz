@@ -75,12 +75,11 @@
 
 (defmacro deffilter (name args type &body body)
   (let ((symbol (intern (format nil "~:@(~a~)-FILTER" name))))
-    `(defun ,symbol ,args
+    `(defmethod ,symbol ,args
        (lambda (,type) (declare (ignorable ,type)) ,@body))))
 
 (defmacro def-boolean-filter (name logic found)
   `(deffilter ,name (&rest filters) node-or-edge
-     (assert filters)
      (loop for filter in filters
 	  ,logic (funcall filter node-or-edge) do (return ,found) finally (return ,(not found)))))
 
@@ -89,6 +88,9 @@
 
 (deffilter not (filter) node-or-edge
   (not (funcall filter node-or-edge)))
+
+(deffilter all () node-or-edge
+  t)
 
 (define-condition label-too-long-error (error) ())
 

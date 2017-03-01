@@ -169,13 +169,19 @@
 		       (loop for edge in edges repeat 5	while (<= (role-edge-score edge) 15)
 			  collect (label edge)))))
 
-(deffilter movie (movie) node
+(deffilter movie ((movie movie)) node
   (movie= movie node))
 
-(deffilter gender (gender) edge
+(deffilter movie ((title string)) node
+  (movie= (make-instance 'movie :title title) node))
+
+(deffilter gender ((gender symbol)) edge
   (unless (or (eql gender :male) (eql gender :female))
     (error "gender must be :male or :female"))
   (eql (gender edge) gender))
+
+(deffilter gender ((gender string)) edge
+  (funcall (gender-filter (intern (string-upcase gender) :keyword)) edge))
 
 (deffilter same-character () edge
   (equal (name (role-1 edge)) (name (role-2 edge))))
