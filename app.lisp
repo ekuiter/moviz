@@ -172,6 +172,17 @@
 (deffilter movie (movie) node
   (movie= movie node))
 
+(deffilter gender (gender) edge
+  (unless (or (eql gender :male) (eql gender :female))
+    (error "gender must be :male or :female"))
+  (eql (gender edge) gender))
+
+(deffilter same-character () edge
+  (equal (name (role-1 edge)) (name (role-2 edge))))
+
+(deffilter billing (score-bound) edge
+  (<= (role-edge-score edge) score-bound))
+
 (defmethod to-dot ((graph movie-graph) &key (stream t))
   (labels ((init-fn ()
 	     (let ((font-name "Helvetica"))

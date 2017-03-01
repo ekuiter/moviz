@@ -69,6 +69,10 @@
 		 if (and (find (node-1 edge) vertices) (find (node-2 edge) vertices))
 		 collect edge))))
 
+(defmethod filter-edges ((graph graph) filter)
+  (subgraph graph (vertices graph)
+	    (loop for edge in (edges graph) if (funcall filter edge) collect edge)))
+
 (defmacro deffilter (name args type &body body)
   (let ((symbol (intern (format nil "~:@(~a~)-FILTER" name))))
     `(defun ,symbol ,args
