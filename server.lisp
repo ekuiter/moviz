@@ -32,11 +32,13 @@
 (defmacro make-html (&body body)
   `(with-html-string
      (:html (:head (:title "movie-graph")
-		   (:link :rel :stylesheet :href "assets/style.css")
-		   (:link :rel :stylesheet :href
-			  "http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.min.css")
-		   (:script :src "https://code.jquery.com/jquery-3.1.1.min.js")
-		   (:script :src "http://code.jquery.com/ui/1.12.1/jquery-ui.min.js")
+		   (:link :rel :stylesheet :href "assets/app.css")
+		   (:link :rel :stylesheet :href "assets/jquery-ui.min.css")
+		   (:script :src "assets/jquery.min.js")
+		   (:script :src "assets/jquery-ui.min.js")
+		   (:script :src "assets/helpers.js")
+		   (:script :src "assets/server.js")
+		   (:script :src "assets/node-filter.js")
 		   (:script :src "assets/app.js"))
 	    (:body ,@body))))
 
@@ -85,7 +87,8 @@
 			     (:input :id "update" :placeholder "Update")
 			     (:input :id "filter-nodes" :placeholder "Filter nodes")
 			     (:input :id "filter-edges" :placeholder "Filter edges")
-			     (:div :id "state"))
+			     (:div :id "state")
+			     (:div :id "node-filter"))
 			 (:object :id "graph" :data +graph-path+ :type "image/svg+xml"))))
 
 (defroute (:get "/state/") (req res)
