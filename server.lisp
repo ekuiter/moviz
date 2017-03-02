@@ -31,16 +31,17 @@
 				   (:link :rel :stylesheet :href "assets/style.css"))
 			    (:body ,@body))))
 
-(defun update-graph ()
-  (let ((graph (eval `(app:make-graph (app:current-graph) ,@*graph-classes*))))
-    (setf graph (graph:filter-nodes graph *node-filter*))
-    (setf graph (graph:filter-edges graph *edge-filter*))
+(defun update-graph (&key (graph-classes *graph-classes*) (node-filter *node-filter*)
+		       (edge-filter *edge-filter*))
+  (let ((graph (eval `(app:make-graph (app:current-graph) ,@graph-classes))))
+    (setf graph (graph:filter-nodes graph node-filter)
+	  graph (graph:filter-edges graph edge-filter)
+	  *graph-classes* graph-classes *node-filter* node-filter *edge-filter* edge-filter)
     (app:make-image graph +graph-path+ :format "svg")))
 
 (defmacro def-graph-route (options (bind-request bind-response &optional bind-args) &body body)
   `(defroute ,options (,bind-request ,bind-response ,bind-args)
-     ,@body
-     (update-graph)
+     (apply #'update-graph (progn ,@body))
      (redirect ,bind-response "/")))
 
 (defun json-to-filter (json)
@@ -62,10 +63,10 @@
 	(let ((form (json:decode-json-from-string json)))
 	  (values (eval form) form))))))
 
-(defmacro def-filter-route (path var)
+(defmacro def-filter-route (path keyword)
   `(def-graph-route (:get ,path) (req res (filter-json))
      (setf filter-json (or (get-var req "filter") filter-json))
-     (setf ,var (json-to-filter filter-json))))
+     (list ,keyword (json-to-filter filter-json))))
 
 (defroute (:get "/") (req res)
   (send-response res :headers '(:content-type "text/html; charset=utf-8")
@@ -91,18 +92,19 @@
 
 (def-graph-route (:get "/update/(.*)") (req res (classes))
   (setf classes (or (get-var req "classes") classes))
-  (setf *graph-classes* (mapcar (lambda (class) (intern (string-upcase class) :app))
-				(split-sequence #\/ classes :remove-empty-subseqs t))))
+  (list :graph-classes (mapcar (lambda (class) (intern (string-upcase class) :app))
+			       (split-sequence #\/ classes :remove-empty-subseqs t))))
 
-(def-filter-route "/filter/node/(.*)" *node-filter*)
-(def-filter-route "/filter/edge/(.*)" *edge-filter*)
+(def-filter-route "/filter/node/(.*)" :node-filter)
+(def-filter-route "/filter/edge/(.*)" :edge-filter)
 
 (def-graph-route (:get "/clear/") (req res)
   (app:clear-graph))
 
 (def-graph-route (:get "/add/(.*)") (req res (movies))
   (setf movies (or (get-var req "movies") movies))
-  (apply #'app:add-movies (split-sequence #\/ movies :remove-empty-subseqs t)))
+  (apply #'app:add-movies (split-sequence #\/ movies :remove-empty-subseqs t))
+  nil)
 
 (defsearchroute "search" imdb:do-search imdb:id-class)
 (defsearchroute "inverse-search" imdb:inverse-search imdb:inverse-id-class)
