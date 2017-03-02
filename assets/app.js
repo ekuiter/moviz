@@ -28,43 +28,83 @@ function assertLegalForm(obj, legalValues, level) {
 	throw obj + " does not denote an argument";
 }
 
+function attachInputEvent(sel, cb) {
+    $(sel).keypress(function(e) {
+	if (e.which == 13)
+            cb($(sel).val());
+    });
+}
+
+function instantPromise() {
+    return $.Deferred().resolve().promise();
+}
+
 server.callFn = function(fn, legalValues) {
     return function(arr) {
 	var args = Array.isArray(arr) ? arr : Array.prototype.slice.call(arguments);
 	assertLegalValues(args, legalValues);
 	var url = "/" + fn + "/" + args.join("/");
-	if (server.debug)
+	if (server.debug) {
 	    console.log(url);
-	else
-	    return $.ajax(url);
+	    return instantPromise();
+	} else
+	    return $.ajax(url).fail(function(res) {
+		alert(res.responseText);
+	    });
     };
 };
 
-server.callMultiFn = function(fn, legalValues) {
-    return function() {
-	var args = Array.prototype.slice.call(arguments);
-	return server.callFn(fn, legalValues).apply(this, args);
-    };
-};
-
-server.callFilterFn = function(type, legalValues) {
+server.callFilterFn = function(fn, legalValues) {
     return function(filter) {
 	legalValues = legalValues || [];
 	legalValues.push("or-filter", "and-filter", "not-filter", "all-filter");
 	assertLegalForm(filter, legalValues);
-	return server.callFn("filter/" + type)(JSON.stringify(filter));
+	return server.callFn(fn)(JSON.stringify(filter));
     };
-}
+};
 
-server.clear = server.callFn("clear");
-server.add = server.callMultiFn("add");
-server.update = server.callMultiFn("update", ["unlabeled", "detailed", "condensed",
-					      "weighted", "top-actors"]);
-server.filterNodes = server.callFilterFn("node", ["movie-filter"]);
-server.filterEdges = server.callFilterFn("edge", ["gender-filter", "same-character-filter",
-						  "billing-filter"]);
+server.updatingFn = function(fn) {
+    return function() {
+	return fn.apply(this, arguments).then(function() {
+	    $("#graph").attr("data", "/assets/graph.svg?" + new Date().getTime());
+	    $.ajax("/state/").then(function(res) {
+		$("#state").html(res);
+	    });
+	});
+    };
+};
+
 server.getNodes = server.callFn("graph/nodes");
+server.getEdges = server.callFn("graph/edges");
+server.clear = server.updatingFn(server.callFn("clear"));
+server.add = server.updatingFn(server.callFn("add"));
+server.update = server.updatingFn(server.callFn("update", ["unlabeled", "detailed", "condensed",
+							   "weighted", "top-actors"]));
+server.filterNodes = server.updatingFn(server.callFilterFn("filter/node", ["movie-filter"]));
+server.filterEdges = server.updatingFn(
+    server.callFilterFn("filter/edge", ["gender-filter", "same-character-filter",
+					"billing-filter"]));
+server.search = server.callFn("search");
+server.inverseSearch = server.callFn("inverse-search");
 
 $(function() {
+    window.onerror = alert;
     
+    attachInputEvent("#update", function(text) {
+	server.update(text.split("/"));
+    });
+
+    attachInputEvent("#add", function(text) {
+	server.add(text.split("/"));
+    });
+
+    attachInputEvent("#filter-nodes", function(text) {
+	server.filterNodes(JSON.parse(text));
+    });
+
+    attachInputEvent("#filter-edges", function(text) {
+	server.filterEdges(JSON.parse(text));
+    });
+
+    server.updatingFn(instantPromise)();
 });

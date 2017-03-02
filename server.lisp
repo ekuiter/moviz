@@ -12,13 +12,16 @@
   `(wookie:defroute ,options (,bind-request ,bind-response args)
      (destructuring-bind ,bind-args args ,@body)))
 
+(defun send-json-response (res json)
+  (send-response res :headers '(:content-type "application/json")
+		 :body (json:encode-json-to-string json)))
+
 (defmacro defsearchroute (path function id-class-function)
   `(defroute (:get ,(format nil "/~a/(.+)/(.+)" path)) (req res (list-string id-string))
      (let* ((list (imdb:make-list-instance list-string))
 	    (id-object (make-instance (,id-class-function list) :string id-string))
 	    (results (,function list id-object)))
-       (send-response res :headers '(:content-type "application/json")
-		      :body (json:encode-json-to-string results)))))
+       (send-json-response res results))))
 
 (defun redirect (res path)
   (send-response res :status 302 :headers (list :location path)))
@@ -27,9 +30,15 @@
   `(with-html-output-to-string (s nil :prologue t) ,@body))
 
 (defmacro make-html (&body body)
-  `(with-html-string (:html (:head (:title "movie-graph")
-				   (:link :rel :stylesheet :href "assets/style.css"))
-			    (:body ,@body))))
+  `(with-html-string
+     (:html (:head (:title "movie-graph")
+		   (:link :rel :stylesheet :href "assets/style.css")
+		   (:link :rel :stylesheet :href
+			  "http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.min.css")
+		   (:script :src "https://code.jquery.com/jquery-3.1.1.min.js")
+		   (:script :src "http://code.jquery.com/ui/1.12.1/jquery-ui.min.js")
+		   (:script :src "assets/app.js"))
+	    (:body ,@body))))
 
 (defun update-graph (&key (graph-classes *graph-classes*) (node-filter *node-filter*)
 		       (edge-filter *edge-filter*))
@@ -42,7 +51,7 @@
 (defmacro def-graph-route (options (bind-request bind-response &optional bind-args) &body body)
   `(defroute ,options (,bind-request ,bind-response ,bind-args)
      (apply #'update-graph (progn ,@body))
-     (redirect ,bind-response "/")))
+     (send-response res :body "")))
 
 (defun json-to-filter (json)
   (let ((*string* nil))
@@ -65,46 +74,47 @@
 
 (defmacro def-filter-route (path keyword)
   `(def-graph-route (:get ,path) (req res (filter-json))
-     (setf filter-json (or (get-var req "filter") filter-json))
      (list ,keyword (json-to-filter filter-json))))
 
 (defroute (:get "/") (req res)
   (send-response res :headers '(:content-type "text/html; charset=utf-8")
 		 :body (make-html
 			 (:h1 "movie-graph")
-			 (:p (:a :href "/clear/" "Clear")
-			     (:form :method :get :action "/add/"
-				    (:input :name "movies")
-				    (:input :type :submit :value "Add"))
-			     (:form :method :get :action "/update/"
-				    (:input :name "classes")
-				    (:input :type :submit :value "Update")
-				    " " (str *graph-classes*))
-			     (:form :method :get :action "/filter/node/"
-				    (:input :name "filter")
-				    (:input :type :submit :value "Filter nodes")
-				    " " (esc (write-to-string *node-filter*)))
-			     (:form :method :get :action "/filter/edge/"
-				    (:input :name "filter")
-				    (:input :type :submit :value "Filter edges")
-				    " " (esc (write-to-string *edge-filter*))))
-			 (:object :data +graph-path+ :type "image/svg+xml"))))
+			 (:p (:a :href "/clear/" "Clear") " "
+			     (:input :id "add" :placeholder "Add")
+			     (:input :id "update" :placeholder "Update")
+			     (:input :id "filter-nodes" :placeholder "Filter nodes")
+			     (:input :id "filter-edges" :placeholder "Filter edges")
+			     (:div :id "state"))
+			 (:object :id "graph" :data +graph-path+ :type "image/svg+xml"))))
+
+(defroute (:get "/state/") (req res)
+  (send-response res :headers '(:content-type "text/html; charset=utf-8")
+		 :body (with-html-string
+			 (:p (:b "graph-classes: ") (str *graph-classes*))
+			     (:p (:b "node-filter: ") (esc (write-to-string *node-filter*)))
+			     (:p (:b "edge-filter: ") (esc (write-to-string *edge-filter*))))))
+
+(defroute (:get "/graph/nodes/") (req res)
+  (send-json-response res (graph:vertices (app:current-graph))))
+
+(defroute (:get "/graph/edges/") (req res)
+  (send-json-response res (graph:edges (app:current-graph))))
+
+(def-graph-route (:get "/clear/") (req res)
+  (app:clear-graph)
+  nil)
+
+(def-graph-route (:get "/add/(.*)") (req res (movies))
+  (apply #'app:add-movies (split-sequence #\/ movies :remove-empty-subseqs t))
+  nil)
 
 (def-graph-route (:get "/update/(.*)") (req res (classes))
-  (setf classes (or (get-var req "classes") classes))
   (list :graph-classes (mapcar (lambda (class) (intern (string-upcase class) :app))
 			       (split-sequence #\/ classes :remove-empty-subseqs t))))
 
 (def-filter-route "/filter/node/(.*)" :node-filter)
 (def-filter-route "/filter/edge/(.*)" :edge-filter)
-
-(def-graph-route (:get "/clear/") (req res)
-  (app:clear-graph))
-
-(def-graph-route (:get "/add/(.*)") (req res (movies))
-  (setf movies (or (get-var req "movies") movies))
-  (apply #'app:add-movies (split-sequence #\/ movies :remove-empty-subseqs t))
-  nil)
 
 (defsearchroute "search" imdb:do-search imdb:id-class)
 (defsearchroute "inverse-search" imdb:inverse-search imdb:inverse-id-class)

@@ -55,6 +55,10 @@
 (defmethod label ((node movie-node))
   (title node))
 
+(defmethod json:encode-json ((node movie-node) &optional stream)
+  (json:with-object (stream)
+    (json:encode-object-member :title (title node) stream)))
+
 (defmethod label ((edge role-edge))
   (readable-name (actor (role-1 edge))))
 
