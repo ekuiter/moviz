@@ -1,4 +1,7 @@
-var Server = function(debug) {
+function Server(debug) {
+    if (!(this instanceof Server))
+	return new Server(debug);
+    
     this.debug = debug;
     this.getState = this.callFn("state");
     this.getNodes = this.callFn("graph/nodes");
@@ -53,7 +56,7 @@ Server.prototype = {
 		self.getState().then(function(data) {
 		    $("#state").html(data);
 		});
-		app.nodeFilter.invalidate();
+		self.nodeFilter.invalidate();
 	    });
 	};
     },
@@ -61,5 +64,9 @@ Server.prototype = {
     invalidate: function(fn) {
 	fn = fn || instantPromise;
 	return this.invalidateFn(fn)(Array.prototype.slice.call(arguments, 1));
+    },
+
+    setNodeFilter: function(nodeFilter) {
+	this.nodeFilter = nodeFilter;
     }
 };
