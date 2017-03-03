@@ -91,17 +91,12 @@
 			     (:input :id "update" :placeholder "Update")
 			     (:input :id "filter-nodes" :placeholder "Filter nodes")
 			     (:input :id "filter-edges" :placeholder "Filter edges")
-			     (:div :id "state")
-			     (:div :id "node-filter")
+			     (:div :id "node-filter"
+				   (:button :class "all" "All")
+				   (:button :class "none" "None")
+				   (:span :class "filters"))
 			     (:div :id "edge-filter"))
 			 (:object :id "graph" :data +graph-path+ :type "image/svg+xml"))))
-
-(defroute (:get "/state/") (req res)
-  (send-response res :headers '(:content-type "text/html; charset=utf-8")
-		 :body (with-html-string
-			 (:p (:b "graph-classes: ") (str *graph-classes*))
-			     (:p (:b "node-filter: ") (esc (write-to-string *node-filter*)))
-			     (:p (:b "edge-filter: ") (esc (write-to-string *edge-filter*))))))
 
 (defroute (:get "/graph/nodes/") (req res)
   (send-json-response res (graph:vertices (app:current-graph))))
@@ -134,10 +129,14 @@
 
 (defun serve (&optional (port 3000))
   (update-graph)
-  (as:with-event-loop ()
-    (let* ((listener (make-instance 'listener :bind "127.0.0.1" :port port))
-	   (server (start-server listener)))
-      (as:signal-handler 2 (lambda (sig)
-			     (declare (ignore sig))
-			     (as:free-signal-handler 2)
-			     (as:close-tcp-server server))))))
+  (handler-bind
+      ((cl-async:streamish-closed (lambda (c)
+				    (declare (ignore c))
+				    (invoke-restart 'cl-async::continue-event-loop))))
+    (as:with-event-loop ()
+      (let* ((listener (make-instance 'listener :bind "127.0.0.1" :port port))
+	     (server (start-server listener)))
+	(as:signal-handler 2 (lambda (sig)
+			       (declare (ignore sig))
+			       (as:free-signal-handler 2)
+			       (as:close-tcp-server server)))))))

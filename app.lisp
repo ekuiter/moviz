@@ -223,9 +223,11 @@
   (setf *graph* (make-instance 'movie-graph)))
 
 (defun add-movies (&rest movies)
-  (apply #'add-nodes
-	 (append (list *graph*)
-		 (mapcar (lambda (movie) (make-instance 'movie-node :title movie)) movies))))
+  (let ((movies (set-difference movies (mapcar (lambda (node) (title node))
+					       (vertices *graph*)) :test #'equal)))
+    (when movies
+      (apply #'add-nodes *graph*
+	     (mapcar (lambda (movie) (make-instance 'movie-node :title movie)) movies)))))
 
 (defun save-and-quit (file-name)
   (ccl:save-application file-name :prepend-kernel t))

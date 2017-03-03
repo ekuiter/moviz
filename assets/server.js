@@ -4,7 +4,6 @@ function Server(debug) {
     
     this.debug = debug;
     this.invalidatables = [];
-    this.getState = this.callFn("state");
     this.getNodes = this.callFn("graph/nodes");
     this.getEdges = this.callFn("graph/edges");
     this.clear = this.invalidateFn(this.callFn("clear"));
@@ -54,9 +53,6 @@ Server.prototype = {
 	return function() {
 	    return fn.apply(this, arguments).then(function() {
 		$("#graph").prop("data", "/assets/graph.svg?" + new Date().getTime());
-		self.getState().then(function(data) {
-		    $("#state").html(data);
-		});
 		self.invalidatables.forEach(function(obj) {
 		    obj.invalidate();
 		});
