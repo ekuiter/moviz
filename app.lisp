@@ -209,10 +209,10 @@
     (call-next-method graph :stream stream :init-fn #'init-fn :edge-fn #'edge-fn)))
 
 (defmethod make-image ((graph movie-graph) file-name &key (format "png"))
-  (call-next-method graph file-name :format format :charset "latin1"))
+  (call-next-method graph file-name :format format))
 
 (defmethod show ((graph movie-graph) &key (open t) (format "png"))
-  (call-next-method graph :open open :format format :charset "latin1"))
+  (call-next-method graph :open open :format format))
 
 (defvar *graph* (make-instance 'movie-graph))
 

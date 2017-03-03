@@ -30,17 +30,21 @@
   `(with-html-output-to-string (s nil :prologue t) ,@body))
 
 (defmacro make-html (&body body)
-  `(with-html-string
-     (:html (:head (:title "movie-graph")
-		   (:link :rel :stylesheet :href "assets/app.css")
-		   (:link :rel :stylesheet :href "assets/jquery-ui.min.css")
-		   (:script :src "assets/jquery.min.js")
-		   (:script :src "assets/jquery-ui.min.js")
-		   (:script :src "assets/helpers.js")
-		   (:script :src "assets/server.js")
-		   (:script :src "assets/node-filter.js")
-		   (:script :src "assets/app.js"))
-	    (:body ,@body))))
+  (let ((stylesheets (list "jquery-ui.min" "app"))
+	(scripts (list "jquery.min" "jquery-ui.min" "helpers" "server" "filter"
+		       "graph-classes" "app")))
+    `(with-html-string
+       (:html (:head (:title "movie-graph")
+		     (:meta :charset "utf-8")
+		     (:meta :name "viewport" :content "width=device-width, initial-scale=1")
+		     ,@(mapcar (lambda (stylesheet)
+				 `(:link :rel "stylesheet" :href
+					 ,(format nil "assets/~a.css" stylesheet)))
+			       stylesheets)
+		     ,@(mapcar (lambda (script)
+				 `(:script :src ,(format nil "assets/~a.js" script)))
+			       scripts))
+	      (:body ,@body)))))
 
 (defun update-graph (&key (graph-classes *graph-classes*) (node-filter *node-filter*)
 		       (edge-filter *edge-filter*))
@@ -88,7 +92,8 @@
 			     (:input :id "filter-nodes" :placeholder "Filter nodes")
 			     (:input :id "filter-edges" :placeholder "Filter edges")
 			     (:div :id "state")
-			     (:div :id "node-filter"))
+			     (:div :id "node-filter")
+			     (:div :id "edge-filter"))
 			 (:object :id "graph" :data +graph-path+ :type "image/svg+xml"))))
 
 (defroute (:get "/state/") (req res)

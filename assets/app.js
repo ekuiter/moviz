@@ -11,7 +11,8 @@ var App = (function() {
 	
 	self.server = new Server();
 	self.nodeFilter = new NodeFilter(self.server);
-	self.server.setNodeFilter(self.nodeFilter);
+	self.server.shouldInvalidate(self.nodeFilter);
+	self.edgeFilter = new EdgeFilter(self.server);
 
 	attachInputEvent("#update", function(text) {
 	    self.server.update(text.split("/"));

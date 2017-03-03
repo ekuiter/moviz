@@ -3,6 +3,7 @@ function Server(debug) {
 	return new Server(debug);
     
     this.debug = debug;
+    this.invalidatables = [];
     this.getState = this.callFn("state");
     this.getNodes = this.callFn("graph/nodes");
     this.getEdges = this.callFn("graph/edges");
@@ -56,7 +57,9 @@ Server.prototype = {
 		self.getState().then(function(data) {
 		    $("#state").html(data);
 		});
-		self.nodeFilter.invalidate();
+		self.invalidatables.forEach(function(obj) {
+		    obj.invalidate();
+		});
 	    });
 	};
     },
@@ -66,7 +69,7 @@ Server.prototype = {
 	return this.invalidateFn(fn)(Array.prototype.slice.call(arguments, 1));
     },
 
-    setNodeFilter: function(nodeFilter) {
-	this.nodeFilter = nodeFilter;
+    shouldInvalidate: function(obj) {
+	this.invalidatables.push(obj);
     }
 };
