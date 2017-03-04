@@ -40,10 +40,10 @@
 
 (defmethod do-search-suggest ((movies-list movies-list) title)
   (flet ((starts-with (id current-id)
-	   (eql (search id current-id) 0)))
+	   (eql (search id current-id :test #'equalp) 0)))
     (multiple-value-bind (record pos)
 	(do-search-binary movies-list (make-instance 'movie :title title)
-			  :id title :id= #'starts-with)
+			  :id title :id= #'starts-with :id<= #'string-not-greaterp)
       (declare (ignore record))
       (let ((results nil) (back 100) (lines 1000))
 	(when pos

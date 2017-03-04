@@ -16,6 +16,7 @@ function Server(debug) {
 					  "billing-filter"]));
     this.search = this.callFn("search");
     this.inverseSearch = this.callFn("inverse-search");
+    this.suggest = this.callFn("suggest");
     this.update();
 };
 
@@ -30,7 +31,7 @@ Server.prototype = {
 		return instantPromise();
 	    } else
 		return $.ajax(url).fail(function(xhr) {
-		    alert(xhr.responseText);
+		    App().reportError(xhr.responseText);
 		});
 	};
     },

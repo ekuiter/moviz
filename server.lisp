@@ -83,20 +83,37 @@
      (list ,keyword (json-to-filter filter-json))))
 
 (defroute (:get "/") (req res)
-  (send-response res :headers '(:content-type "text/html; charset=utf-8")
-		 :body (make-html
-			 (:h1 "movie-graph")
-			 (:p (:a :href "/clear/" "Clear") " "
-			     (:input :id "add" :placeholder "Add")
-			     (:input :id "update" :placeholder "Update")
-			     (:input :id "filter-nodes" :placeholder "Filter nodes")
-			     (:input :id "filter-edges" :placeholder "Filter edges")
-			     (:div :id "node-filter"
-				   (:button :class "all" "All")
-				   (:button :class "none" "None")
-				   (:span :class "filters"))
-			     (:div :id "edge-filter"))
-			 (:object :id "graph" :data +graph-path+ :type "image/svg+xml"))))
+  (let ((body (make-html
+		(:div :id "wrapper"
+		      (:div :id "sidebar-pad")
+		      (:object :id "graph" :type "image/svg+xml"))
+		(:div :id "sidebar"
+		      (:ul :id "menu"
+			   (:li :class "ui-widget-header" (:div "movie-graph"))
+			   (:li :id "clear"
+				(:div (:span :class "ui-icon ui-icon-trash") "Clear"))
+			   (:li :id "info"
+				(:div (:span :class "ui-icon ui-icon-info") "Info")))
+		      (:input :id "add" :placeholder "Add")
+		      (:input :id "update" :placeholder "Update")
+		      (:p (:b "Movies"))
+		      (:div :id "node-filter"
+			    (:button :class "all"
+				     (:span :class "ui-icon ui-icon-circle-plus") " All")
+			    (:button :class "none"
+				     (:span :class "ui-icon ui-icon-circle-minus") " None")
+			    (:span :class "filters"))
+		      (:p (:b "Actors"))
+		      (:div :id "edge-filter"))
+		(:div :id "info-dialog" :title "movie-graph"
+		      (:p "movie-graph visualizes connections between movies using the IMDb.")
+		      (:p "Visit on GitHub: " (:a :href "https://github.com/ekuiter/movie-graph"
+						  "ekuiter/movie-graph"))
+		      (:p "Information courtesy of IMDb ("
+			  (:a :href "http://www.imdb.com" "imdb.com")
+			  "). Used with permission."))
+		(:div :id "error-dialog" :title "Error"))))
+    (send-response res :headers '(:content-type "text/html; charset=utf-8") :body body)))
 
 (defroute (:get "/graph/nodes/") (req res)
   (send-json-response res (graph:vertices (app:current-graph))))

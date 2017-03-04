@@ -1,5 +1,7 @@
 *.dx64fsl
-*.png
-*.svg
+/*.png
+/*.svg
+/assets/graph.png
+/assets/graph.svg
 imdb/
 *-graph

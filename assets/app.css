@@ -1,3 +1,55 @@
 body {
+    display: none;
     font-family: Helvetica;
+    margin: 0;
+}
+
+#wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+#graph {
+    max-width: 100vw;
+}
+
+#sidebar-pad {
+    width: 200px;
+}
+
+#sidebar {
+    width: 200px;
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: rgba(220, 220, 220, 0.5);
+    z-index: 10;
+}
+
+#node-filter, #node-filter .filters, #edge-filter {
+    width: 100%;
+}
+
+p {
+    margin: 10px 5px 5px 5px;
+}
+
+.ui-button, .ui-spinner-input {
+    font-size: 0.8em !important;
+}
+
+.ui-widget-header {
+    padding: 0.2em;
+}
+
+.no-close .ui-dialog-titlebar-close {
+  display: none;
+}
+
+.error-dialog .ui-widget-header {
+    color: white;
+    background-color: #f33;
 }
