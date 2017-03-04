@@ -122,12 +122,6 @@
   (call-next-method actors-list stream
 		    :extract-id-fn (lambda (line) (subseq line 0 (position #\Tab line)))))
 
-(defun delete-duplicates-in-sorted-list (list &key (test #'eql))
-  "Deletes all duplicates in a sorted list (more efficient than delete-duplicates)."
-  (mapcon (lambda (cell)
-	    (when (or (null (cdr cell)) (not (funcall test (car cell) (cadr cell))))
-	      (list (car cell)))) list))
-
 (defmethod read-record ((actors-list actors-list) actor stream &key)
   (flet ((extract-record-fn (record)
 	   (setf record (subseq record (position #\Tab record)))

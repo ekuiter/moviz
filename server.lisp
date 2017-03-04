@@ -122,6 +122,10 @@
 (defsearchroute "search" imdb:do-search imdb:id-class)
 (defsearchroute "inverse-search" imdb:inverse-search imdb:inverse-id-class)
 
+(defroute (:get "/suggest/(.+)") (req res (title))
+  (let* ((results (imdb:suggest (imdb:make-list-instance 'movies) title)))
+    (send-json-response res results)))
+
 (def-directory-route "/assets" "./assets")
 
 (defroute (:* ".+" :priority -1) (req res)

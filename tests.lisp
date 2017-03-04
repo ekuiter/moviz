@@ -38,8 +38,8 @@
     (assert (= (length results) 14))
     (assert (movie= movie (movie av)))
     (assert (null (episode av)))
-    (assert (= (length (notes av)) 3))
-    (assert (equal (search "Since being" (first (notes av))) 0))))
+    (assert (= (length (info av)) 3))
+    (assert (equal (search "Since being" (first (info av))) 0))))
 
 (deftest crazy-credits-list-do-search
   (let* ((movie (make-instance 'movie :title "Supernatural"))
@@ -48,8 +48,8 @@
     (assert (= (length results) 18))
     (assert (movie= movie (movie cc)))
     (assert (null (episode cc)))
-    (assert (= (length (notes cc)) 2))
-    (assert (equal (search "The logo" (first (notes cc))) 0))))
+    (assert (= (length (info cc)) 2))
+    (assert (equal (search "The logo" (first (info cc))) 0))))
 
 (deftest goofs-list-do-search
   (let* ((movie (make-instance 'movie :title "Buffy the Vampire Slayer"))
@@ -58,8 +58,8 @@
     (assert (= (length results) 137))
     (assert (movie= movie (movie goof)))
     (assert (equal (episode goof) "After Life (#6.3)"))
-    (assert (= (length (notes goof)) 3))
-    (assert (equal (search "CREW: When" (first (notes goof))) 0))))
+    (assert (= (length (info goof)) 3))
+    (assert (equal (search "CREW: When" (first (info goof))) 0))))
 
 (deftest soundtracks-list-do-search
   (let* ((movie (make-instance 'movie :title "Game of Thrones"))
@@ -68,8 +68,8 @@
     (assert (= (length results) 63))
     (assert (movie= movie (movie soundtracks)))
     (assert (null (episode soundtracks)))
-    (assert (= (length (notes soundtracks)) 1))
-    (assert (equal (search "\"Main Title\"" (first (notes soundtracks))) 0))))
+    (assert (= (length (info soundtracks)) 1))
+    (assert (equal (search "\"Main Title\"" (first (info soundtracks))) 0))))
 
 (deftest trivia-list-do-search
   (let* ((movie (make-instance 'movie :title "Supernatural"))
@@ -78,8 +78,8 @@
     (assert (= (length results) 254))
     (assert (movie= movie (movie trivia)))
     (assert (null (episode trivia)))
-    (assert (= (length (notes trivia)) 99))
-    (assert (equal (search "SPOILER: Early on" (first (notes trivia))) 0))))
+    (assert (= (length (info trivia)) 99))
+    (assert (equal (search "SPOILER: Early on" (first (info trivia))) 0))))
 
 (deftest quotes-list-do-search
   (let* ((movie (make-instance 'movie :title "Game of Thrones"))
@@ -88,5 +88,10 @@
     (assert (= (length results) 61))
     (assert (movie= movie (movie quotes)))
     (assert (null (episode quotes)))
-    (assert (= (length (notes quotes)) 21))
-    (assert (equal (search "[repeated line]" (first (notes quotes))) 0))))
+    (assert (= (length (info quotes)) 21))
+    (assert (equal (search "[repeated line]" (first (info quotes))) 0))))
+
+(deftest movies-list-suggest
+  (let* ((results (suggest (make-list-instance 'movies) "Harry Potter")))
+    (assert (find "Harry Potter and the Chamber of Secrets" results :test #'equal))
+    (assert (find "Harry Potter and the Deathly Hallows: Part 1" results :test #'equal))))

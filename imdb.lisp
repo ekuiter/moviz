@@ -8,6 +8,17 @@
 	  :initform (error "Must supply title")
 	  :reader title)))
 
+(defclass movie-record ()
+  ((movie :initarg :movie
+	  :initform (error "Must supply movie")
+	  :reader movie)
+   (episode :initarg :episode
+	    :initform nil
+	    :reader episode)
+   (info :initarg :info
+	 :initform (error "Must supply info")
+	 :reader info)))
+
 (defclass imdb-list ()
   ((file-name :initarg :file-name
 	      :initform (error "Must supply file name")
@@ -128,6 +139,25 @@
   "Prints a summary of a list."
   (loop for element in list do (summarize element)))
 
+(defmethod print-object ((info movie-record) stream)
+  "Prints a movie record."
+  (print-unreadable-object (info stream :type t)
+    (format stream "~a~@[ - ~a~]"
+	    (title (movie info)) (episode info))))
+
+(defmethod summary ((info movie-record) &key (suffix ""))
+  "Returns movie record in a readable form."
+  (let ((heading (format nil "~a~@[ - ~a~]" (title (movie info)) (episode info))))
+    (format nil "~a~%~v@{=~}~%~{~a~%~}" heading (length heading)
+	    (mapcar (lambda (note) (format nil "~a~a" note suffix)) (info info)))))
+
+(defun delete-duplicates-in-sorted-list (list &key (test #'eql))
+  "Deletes all duplicates in a sorted list (more efficient than delete-duplicates)."
+  (mapcon (lambda (cell)
+	    (when (or (null (cdr cell)) (not (funcall test (car cell) (cadr cell))))
+	      (list (car cell))))
+	  list))
+
 (defmethod check-record ((list imdb-list) id-object bound &optional (offset 1000))
   "Returns the first or last record in a list, useful for debugging."
   (with-open-list list
@@ -185,13 +215,15 @@
 	       (let ((mid (floor (+ min max) 2)))
 		 (file-position stream mid)
 		 (let* ((current-id (read-until-record list stream))
+			(pos (file-position stream))
 			(less (funcall id<= id current-id))
 			(new-min (if less min mid))
 			(new-max (if less mid max)))
 		   (when (and (= min new-min) (= max new-max))
 		     (return-from binary-search nil))
 		   (when (funcall id= id current-id)
-		     (return-from binary-search (read-record list id-object stream)))
+		     (return-from binary-search
+		       (values (read-record list id-object stream) pos)))
 		   (file-position stream new-min)
 		   (binary-search new-min new-max)))))
       (file-position stream (data-start list))
