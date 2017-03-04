@@ -26,10 +26,10 @@ function assertLegalForm(obj, legalValues, level) {
 	throw obj + " does not denote an argument";
 }
 
-function attachInputEvent(sel, cb) {
-    $(sel).keypress(function(e) {
+function attachInputEvent(obj, cb) {
+    obj.keypress(function(e) {
 	if (e.which == 13)
-            cb($(sel).val());
+            cb(obj.val());
     });
 }
 

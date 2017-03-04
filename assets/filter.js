@@ -9,17 +9,14 @@ function Filter(server, sel) {
 }
 
 Filter.prototype = {
-    constructFilterLabel: function(name, control, cb) {
+    constructFilterLabel: function(name, text) {
 	var self = this;
 	var label = $("<label>");
 	var input = $("<input type='checkbox'>").
 	    prop("value", name).
 	    prop("checked", this.checkedFilters.indexOf(name) !== -1).
-	    click(function() {
-		var checked = label.find("input:checkbox:checked").length == 1;
-		(cb || self.clickFilter.bind(self))(checked);
-	    });
-	return label.append(input).append(name).append(control);
+	    click(self.clickFilter.bind(self));
+	return label.append(input).append(text || name);
     },
 
     getCheckedFilters: function() {
@@ -77,6 +74,8 @@ NodeFilter.prototype.invalidate = function() {
 	nodes.forEach(function(node) {
 	    $(self.sel).append(self.constructFilterLabel(node));
 	});
+	$(self.sel).controlgroup({ direction: "vertical" }).
+	    parent().controlgroup({ direction: "vertical" });
     });
 };
 
@@ -95,47 +94,66 @@ function EdgeFilter(server) {
     self.availableFilters = {
 	gender: {
 	    construct: function() {
-		var select = this.select = $("<select disabled>").
-		    append($("<option value='male'>").append("male")).
-		    append($("<option value='female'>").append("female")).
-		    change(self.clickFilter.bind(self));
-		return self.constructFilterLabel("gender", select, function(checked) {
-		    select.prop("disabled", !checked);
-		    self.clickFilter();
-		});
+		return this.select = $("<select>").
+		    append($("<option value='gender'>").append("Gender")).
+		    append($("<option value='male'>").append("Male")).
+		    append($("<option value='female'>").append("Female")).
+		    on("selectmenuchange", self.clickFilter.bind(self));
 	    },
-
+	    getChecked: function() { return this.select.val() !== "gender"; },
 	    update: function() { return ["gender-filter", this.select.val()]; }
 	},
 
 	"same-character": {
-	    construct: function() { return self.constructFilterLabel("same-character"); },
+	    construct: function() {
+		return self.constructFilterLabel("same-character", "Same character");
+	    },
 	    update: function() { return ["same-character-filter"]; }
 	},
 
 	billing: {
 	    construct: function() {
-		var input = this.input = $("<input disabled>").
-		    prop("value", "10").change(self.clickFilter.bind(self));
-		return self.constructFilterLabel("billing", input, function(checked) {
-		    input.prop("disabled", !checked);
-		    self.clickFilter();
-		});
+		var input = this.input = $("<input>").addClass("ui-spinner-input").
+		    prop("placeholder", "Billing");
+		attachInputEvent(input, self.clickFilter.bind(self));
+		return input;
 	    },
-
-	    update: function() { return ["billing-filter", parseInt(this.input.val())]; }
+	    afterConstruct: function() { this.input.spinner("option", "min", 1); },
+	    getChecked: function() { return this.input.spinner("value"); },
+	    update: function() { return ["billing-filter", this.input.spinner("value")]; }
 	}
     };
 
-    Object.getOwnPropertyNames(self.availableFilters).forEach(function(filter) {
-	var filterObj = self.availableFilters[filter];
+    self.forFilters(function(filterObj) {
 	$(self.sel).append(filterObj.construct.call(filterObj));
+    });
+    $(self.sel).controlgroup({ direction: "vertical" });
+    self.forFilters(function(filterObj) {
+	filterObj.afterConstruct && filterObj.afterConstruct.call(filterObj);
     });
     self.update();
 };
 
 EdgeFilter.prototype = Object.create(Filter.prototype);
 EdgeFilter.prototype.constructor = EdgeFilter;
+
+EdgeFilter.prototype.forFilters = function(cb) {
+    var self = this;
+    Object.getOwnPropertyNames(self.availableFilters).forEach(function(filterName) {
+	var filterObj = self.availableFilters[filterName];
+	cb(filterObj, filterName);
+    });
+};
+
+EdgeFilter.prototype.getCheckedFilters = function() {
+    var self = this;
+    var checkedFilters = Filter.prototype.getCheckedFilters.call(this);
+    self.forFilters(function(filterObj, filterName) {
+	if (filterObj.getChecked && filterObj.getChecked.call(filterObj))
+	    checkedFilters.push(filterName);
+    });
+    return checkedFilters;
+};
 
 EdgeFilter.prototype.update = function() {
     var self = this;

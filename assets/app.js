@@ -14,19 +14,19 @@ var App = (function() {
 	self.server.shouldInvalidate(self.nodeFilter);
 	self.edgeFilter = new EdgeFilter(self.server);
 
-	attachInputEvent("#update", function(text) {
+	attachInputEvent($("#update"), function(text) {
 	    self.server.update(text.split("/"));
 	});
-	attachInputEvent("#add", function(text) {
+	attachInputEvent($("#add"), function(text) {
 	    self.server.add(text.split("/"));
 	});
-	attachInputEvent("#filter-nodes", function(text) {
+	attachInputEvent($("#filter-nodes"), function(text) {
 	    self.server.filterNodes(JSON.parse(text));
 	});
-	attachInputEvent("#filter-edges", function(text) {
+	attachInputEvent($("#filter-edges"), function(text) {
 	    self.server.filterEdges(JSON.parse(text));
 	});
-}
+    }
 })();
 
 $(document).ready(App);
