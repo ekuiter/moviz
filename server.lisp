@@ -32,7 +32,7 @@
 (defmacro make-html (&body body)
   (let ((stylesheets (list "jquery-ui.min" "app"))
 	(scripts (list "jquery.min" "jquery-ui.min" "helpers" "server" "filter"
-		       "graph-classes" "app")))
+		       "node-filter" "edge-filter" "graph-classes" "app")))
     `(with-html-string
        (:html (:head (:title "movie-graph")
 		     (:meta :charset "utf-8")
@@ -90,19 +90,22 @@
 		(:div :id "sidebar"
 		      (:ul :id "menu"
 			   (:li :class "ui-widget-header" (:div "movie-graph"))
+			   (:li :id "add"
+				(:div (:span :class "ui-icon ui-icon-plusthick") "Add movie"))
 			   (:li :id "clear"
-				(:div (:span :class "ui-icon ui-icon-trash") "Clear"))
+				(:div (:span :class "ui-icon ui-icon-trash") "Clear graph"))
 			   (:li :id "info"
 				(:div (:span :class "ui-icon ui-icon-info") "Info")))
-		      (:input :id "add" :placeholder "Add")
-		      (:input :id "update" :placeholder "Update")
+		      (:p (:b "Style"))
+		      (:div :id "graph-classes")
 		      (:p (:b "Movies"))
 		      (:div :id "node-filter"
-			    (:button :class "all"
-				     (:span :class "ui-icon ui-icon-circle-plus") " All")
-			    (:button :class "none"
-				     (:span :class "ui-icon ui-icon-circle-minus") " None")
-			    (:span :class "filters"))
+			    (:div :class "buttons"
+			     (:button :class "all"
+				      (:span :class "ui-icon ui-icon-circle-plus") " All")
+			     (:button :class "none"
+				      (:span :class "ui-icon ui-icon-circle-minus") " None"))
+			    (:div :class "filters"))
 		      (:p (:b "Actors"))
 		      (:div :id "edge-filter"))
 		(:div :id "info-dialog" :title "movie-graph"
@@ -112,7 +115,10 @@
 		      (:p "Information courtesy of IMDb ("
 			  (:a :href "http://www.imdb.com" "imdb.com")
 			  "). Used with permission."))
-		(:div :id "error-dialog" :title "Error"))))
+		(:div :id "error-dialog" :title "Error")
+		(:div :id "add-dialog" :title "Add movie"
+		      (:p "Enter a movie title:")
+		      (:input)))))
     (send-response res :headers '(:content-type "text/html; charset=utf-8") :body body)))
 
 (defroute (:get "/graph/nodes/") (req res)

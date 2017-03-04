@@ -10,41 +10,33 @@ var App = (function() {
 	window.onerror = self.reportError;
 	
 	self.server = new Server();
-	self.nodeFilter = new NodeFilter(self.server);
+	self.nodeFilter = new NodeFilter();
+	self.edgeFilter = new EdgeFilter();
+	self.graphClasses = new GraphClasses();
 	self.server.shouldInvalidate(self.nodeFilter);
-	self.edgeFilter = new EdgeFilter(self.server);
 
 	$("#menu").menu({ items: "> :not(.ui-widget-header)" });
-	$("#info").click(function() {
-	    $("#info-dialog").dialog("open");
-	});
+	
 	$("#clear").click(function() {
 	    self.server.clear();
 	});
 
-	$("#info-dialog").dialog({ autoOpen: false, modal: true, width: 400 });
-	$("#error-dialog").dialog({
-	    autoOpen: false, modal: true, width: 400,
+	makeDialog("#error-dialog", {
 	    dialogClass: "no-close error-dialog",
-	    buttons: {
-		"Okay": function() {
-		    $(this).dialog("close");
-		}
-	    }
+	    buttons: { "Okay": function() { $(this).dialog("close"); } }
 	});
-
-	attachInputEvent($("#add"), function(text) {
-	    self.server.add(text.split("/"));
-	});
-	$("#add").autocomplete({
-	    source: function(req, res) {
-		self.server.suggest(req.term).then(res);
-	    }
-	});
-	attachInputEvent($("#update"), function(text) {
-	    self.server.update(text.split("/"));
+	makeMenuDialog("#info", "#info-dialog");
+	makeMenuDialog("#add", "#add-dialog", { buttons: { "Add": addMovie } });
+	attachInputEvent($("#add-dialog input"), addMovie);
+	$("#add-dialog input").autocomplete({
+	    source: function(req, res) { self.server.suggest(req.term).then(res); }
 	});
 	
+	function addMovie() {
+	    self.server.add($("#add-dialog input").val().split("/"));
+	    $("#add-dialog").dialog("close");
+	}
+
 	$("body").show();
     }
 })();

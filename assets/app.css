@@ -27,10 +27,15 @@ body {
     left: 0;
     background-color: rgba(220, 220, 220, 0.5);
     z-index: 10;
+    overflow: scroll;
 }
 
-#node-filter, #node-filter .filters, #edge-filter {
+#node-filter, #node-filter .buttons, #node-filter .filters, #edge-filter, #graph-classes {
     width: 100%;
+}
+
+#node-filter .buttons .ui-button {
+    width: 50%;
 }
 
 p {

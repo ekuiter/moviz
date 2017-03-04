@@ -36,3 +36,14 @@ function attachInputEvent(obj, cb) {
 function instantPromise() {
     return $.Deferred().resolve().promise();
 }
+
+function makeDialog(sel, options) {
+    $(sel).dialog($.extend({ autoOpen: false, modal: true, width: 400 }, options));
+}
+
+function makeMenuDialog(buttonSel, dialogSel, options) {
+    makeDialog(dialogSel, options);
+    $(buttonSel).click(function() {
+	$(dialogSel).dialog("open");
+    });
+}
