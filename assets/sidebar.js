@@ -29,7 +29,9 @@ function Sidebar() {
     });	
 
     makeMenuDialog("#info", "#info-dialog");
-    makeMenuDialog("#add", "#add-dialog", { buttons: { "Add": addMovies } });
+
+    makeMenuDialog("#add", "#add-dialog", { buttons: { "Add": addMovies } },
+		   function() { $("#add-dialog input").val(""); });
     attachInputEvent($("#add-dialog input"), addMovies);
     $("#add-dialog input").autocomplete({
 	source: function(req, res) {
@@ -54,7 +56,32 @@ function Sidebar() {
     
     function addMovies() {
 	App().server.add(extractMovies($("#add-dialog input").val()));
-	$("#add-dialog input").val("");
 	$("#add-dialog").dialog("close");
+    }
+
+    makeMenuDialog("#debug", "#debug-dialog", { buttons: { "Eval": eval } }, function() {
+	$("#debug-dialog input").val("");
+	$("#debug-dialog .results").text("");
+    });
+    attachInputEvent($("#debug-dialog input"), eval);
+    $("#debug-dialog .progress").progressbar({ value: false });
+
+    function eval() {
+	var input = $("#debug-dialog input");
+	var progress = $("#debug-dialog .progress");
+	var results = $("#debug-dialog .results");
+	if (input.val().trim()) {
+	    input.prop("disabled", true);
+	    progress.show();
+	    results.hide();
+	    App().server.eval(input.val()).always(function() {
+		input.prop("disabled", false);
+		progress.hide();
+	    }).then(function(data) {
+		input.focus();
+		results.show();
+		$("#debug-dialog .results").text(JSON.stringify(data));
+	    });
+	}
     }
 }

@@ -18,6 +18,7 @@ function Server(debug) {
     this.search = this.callFn("search");
     this.inverseSearch = this.callFn("inverse-search");
     this.suggest = this.callFn("suggest");
+    this.eval = this.callFn("eval");
     this.update();
 };
 

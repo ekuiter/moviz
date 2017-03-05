@@ -45,9 +45,11 @@ function makeDialog(sel, options) {
     $(sel).dialog($.extend({ autoOpen: false, modal: true, width: 400 }, options));
 }
 
-function makeMenuDialog(buttonSel, dialogSel, options) {
+function makeMenuDialog(buttonSel, dialogSel, options, cb) {
     makeDialog(dialogSel, options);
     $(buttonSel).click(function() {
 	$(dialogSel).dialog("open");
+	if (cb)
+	    cb();
     });
 }

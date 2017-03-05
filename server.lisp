@@ -97,6 +97,8 @@
 				(:div (:span :class "ui-icon ui-icon-plusthick") "Add movies"))
 			   (:li :id "clear"
 				(:div (:span :class "ui-icon ui-icon-trash") "Clear graph"))
+			   (:li :id "debug"
+				(:div (:span :class "ui-icon ui-icon-wrench") "Debug"))
 			   (:li :id "info"
 				(:div (:span :class "ui-icon ui-icon-info") "Info")))
 		      (:p (:b "Style"))
@@ -121,7 +123,12 @@
 		(:div :id "error-dialog" :title "Error")
 		(:div :id "add-dialog" :title "Add movies"
 		      (:p "Enter some movie titles:")
-		      (:input)))))
+		      (:input))
+		(:div :id "debug-dialog" :title "Debug"
+		      (:p "Enter any Lisp form to evaluate on the server:")
+		      (:input)
+		      (:p :class "progress")
+		      (:p :class "results")))))
     (send-response res :headers '(:content-type "text/html; charset=utf-8") :body body)))
 
 (defroute (:get "/graph/nodes/") (req res)
@@ -151,6 +158,9 @@
 (defroute (:get "/suggest/(.+)") (req res (title))
   (let* ((results (imdb:suggest (imdb:make-list-instance 'movies) title)))
     (send-json-response res results)))
+
+(defroute (:get "/eval/(.+)") (req res (form))
+  (send-json-response res (eval (read-from-string form))))
 
 (def-directory-route "/assets" "./assets")
 

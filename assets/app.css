@@ -84,6 +84,15 @@ p {
     background-color: #f33;
 }
 
-#add-dialog input {
+.ui-dialog input {
     width: 100%;
+}
+
+#debug-dialog input, #debug-dialog .results {
+    font-family: Consolas, Monaco, Lucida Console, Courier New, monospace;
+}
+
+#debug-dialog .progress {
+    display: none;
+    height: 20px;
 }
