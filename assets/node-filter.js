@@ -28,10 +28,9 @@ NodeFilter.prototype.getNodes = function() {
     var self = this;
     return App().server.getNodes().then(function(data) {
 	self.allNodes = [];
-	if (data)
-	    data.forEach(function(node) {
-		self.allNodes.push(node.title);
-	    });
+	asList(data).forEach(function(node) {
+	    self.allNodes.push(node.title);
+	});
 	return self.allNodes;
     });
 };
@@ -54,7 +53,6 @@ NodeFilter.prototype.getCheckedFilters = function() {
 };
 
 NodeFilter.prototype.update = function() {
-    console.log(this.checkedFilters);
     var nhFilter = "neighborhood-filter";
     var filterType = this.checkedFilters.indexOf(nhFilter) !== -1 ? nhFilter : "movie-filter";
     App().server.filterNodes(["or-filter"].concat(

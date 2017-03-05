@@ -13,29 +13,13 @@ var App = (function() {
 	self.nodeFilter = new NodeFilter();
 	self.edgeFilter = new EdgeFilter();
 	self.graphClasses = new GraphClasses();
+	self.sidebar = new Sidebar();
 	self.server.shouldInvalidate(self.nodeFilter);
-
-	$("#menu").menu({ items: "> :not(.ui-widget-header)" });
-	
-	$("#clear").click(function() {
-	    self.server.clear();
-	});
 
 	makeDialog("#error-dialog", {
 	    dialogClass: "no-close error-dialog",
 	    buttons: { "Okay": function() { $(this).dialog("close"); } }
 	});
-	makeMenuDialog("#info", "#info-dialog");
-	makeMenuDialog("#add", "#add-dialog", { buttons: { "Add": addMovie } });
-	attachInputEvent($("#add-dialog input"), addMovie);
-	$("#add-dialog input").autocomplete({
-	    source: function(req, res) { self.server.suggest(req.term).then(res); }
-	});
-	
-	function addMovie() {
-	    self.server.add($("#add-dialog input").val().split("/"));
-	    $("#add-dialog").dialog("close");
-	}
 
 	$("body").show();
     }

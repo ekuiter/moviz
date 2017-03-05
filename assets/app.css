@@ -25,9 +25,38 @@ body {
     position: fixed;
     top: 0;
     left: 0;
-    background-color: rgba(220, 220, 220, 0.5);
     z-index: 10;
     overflow: scroll;
+    transition: all ease 150ms;
+    background-color: rgba(220, 220, 220, 0.5);
+}
+
+#sidebar #menu {
+    white-space: nowrap;
+    transition: all ease 150ms;
+}
+
+#sidebar .ui-widget-header {
+    padding: 0.2em;
+    padding-left: 2em;
+    transition: all ease 150ms;
+}
+
+#sidebar.collapsed {
+    width: 24px;
+}
+
+#sidebar.collapsed, #sidebar.collapsing {
+    overflow: hidden;
+}
+
+#sidebar.collapsed #menu {
+    border: 1px solid white;
+}
+
+#sidebar.collapsed .ui-widget-header {
+    background-color: white;
+    border: 1px solid white;
 }
 
 #node-filter, #node-filter .buttons, #node-filter .filters, #edge-filter, #graph-classes {
@@ -46,10 +75,6 @@ p {
     font-size: 0.8em !important;
 }
 
-.ui-widget-header {
-    padding: 0.2em;
-}
-
 .no-close .ui-dialog-titlebar-close {
   display: none;
 }
@@ -57,4 +82,8 @@ p {
 .error-dialog .ui-widget-header {
     color: white;
     background-color: #f33;
+}
+
+#add-dialog input {
+    width: 100%;
 }

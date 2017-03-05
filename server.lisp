@@ -32,7 +32,7 @@
 (defmacro make-html (&body body)
   (let ((stylesheets (list "jquery-ui.min" "app"))
 	(scripts (list "jquery.min" "jquery-ui.min" "helpers" "server" "filter"
-		       "node-filter" "edge-filter" "graph-classes" "app")))
+		       "node-filter" "edge-filter" "graph-classes" "sidebar" "app")))
     `(with-html-string
        (:html (:head (:title "movie-graph")
 		     (:meta :charset "utf-8")
@@ -90,8 +90,11 @@
 		(:div :id "sidebar"
 		      (:ul :id "menu"
 			   (:li :class "ui-widget-header" (:div "movie-graph"))
+			   (:li :id "collapse"
+				(:div (:span :class "ui-icon ui-icon-triangle-1-n")
+				      (:span :class "text" "Hide")))
 			   (:li :id "add"
-				(:div (:span :class "ui-icon ui-icon-plusthick") "Add movie"))
+				(:div (:span :class "ui-icon ui-icon-plusthick") "Add movies"))
 			   (:li :id "clear"
 				(:div (:span :class "ui-icon ui-icon-trash") "Clear graph"))
 			   (:li :id "info"
@@ -116,8 +119,8 @@
 			  (:a :href "http://www.imdb.com" "imdb.com")
 			  "). Used with permission."))
 		(:div :id "error-dialog" :title "Error")
-		(:div :id "add-dialog" :title "Add movie"
-		      (:p "Enter a movie title:")
+		(:div :id "add-dialog" :title "Add movies"
+		      (:p "Enter some movie titles:")
 		      (:input)))))
     (send-response res :headers '(:content-type "text/html; charset=utf-8") :body body)))
 

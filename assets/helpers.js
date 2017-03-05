@@ -37,6 +37,10 @@ function instantPromise() {
     return $.Deferred().resolve().promise();
 }
 
+function asList(obj) {
+    return obj === null ? [] : obj;
+}
+
 function makeDialog(sel, options) {
     $(sel).dialog($.extend({ autoOpen: false, modal: true, width: 400 }, options));
 }
