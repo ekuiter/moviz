@@ -53,7 +53,7 @@
   (string<= (title node-1) (title node-2)))
 
 (defmethod label ((node movie-node))
-  (title node))
+  (title node))  
 
 (defmethod json:encode-json ((node movie-node) &optional stream)
   (json:with-object (stream)
@@ -67,6 +67,9 @@
 
 (defmethod role-edge< ((edge-1 role-edge) (edge-2 role-edge))
   (< (role-edge-score edge-1) (role-edge-score edge-2)))
+
+(defmethod has-movie ((edge role-edge) (movie movie))
+  (or (movie= movie (node-1 edge)) (movie= movie (node-2 edge))))
 
 (defmacro define-lazy-slot (slot class-slot)
   `(progn (defmethod ,slot ((node movie-node))
@@ -179,6 +182,17 @@
 (deffilter movie ((title string)) node
   (movie= (make-instance 'movie :title title) node))
 
+(deffilter neighborhood ((movie movie)) node
+  (format t "~a~%" node)
+  (let ((r
+	 (find-if (lambda (edge) (and (has-movie edge movie) (has-movie edge node)))
+		  (edges *graph*))))
+    (format t "~a~%" r)
+    r))
+
+(deffilter neighborhood ((title string)) node
+  (funcall (neighborhood-filter (make-instance 'movie :title title)) node))
+
 (deffilter gender ((gender symbol)) edge
   (unless (or (eql gender :male) (eql gender :female))
     (error "gender must be :male or :female"))
@@ -192,6 +206,12 @@
 
 (deffilter billing (score-bound) edge
   (<= (role-edge-score edge) score-bound))
+
+(deffilter actor ((actor actor)) edge
+  (actor= actor (actor (role-1 edge))))
+
+(deffilter actor ((name string)) edge
+  (actor= (make-instance 'actor :name name) (actor (role-1 edge))))
 
 (defmethod to-dot ((graph movie-graph) &key (stream t))
   (labels ((init-fn ()

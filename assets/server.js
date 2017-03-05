@@ -10,10 +10,11 @@ function Server(debug) {
     this.add = this.invalidateFn(this.callFn("add"));
     this.update = this.invalidateFn(this.callFn("update", ["unlabeled", "detailed", "condensed",
 							   "weighted", "top-actors"]));
-    this.filterNodes = this.invalidateFn(this.callFilterFn("filter/node", ["movie-filter"]));
+    this.filterNodes = this.invalidateFn(
+	this.callFilterFn("filter/node", ["movie-filter", "neighborhood-filter"]));
     this.filterEdges = this.invalidateFn(
 	this.callFilterFn("filter/edge", ["gender-filter", "same-character-filter",
-					  "billing-filter"]));
+					  "billing-filter", "actor-filter"]));
     this.search = this.callFn("search");
     this.inverseSearch = this.callFn("inverse-search");
     this.suggest = this.callFn("suggest");
@@ -22,11 +23,12 @@ function Server(debug) {
 
 Server.prototype = {
     callFn: function(fn, legalValues) {
+	var self = this;
 	return function(arr) {
 	    var args = Array.isArray(arr) ? arr : Array.prototype.slice.call(arguments);
 	    assertLegalValues(args, legalValues);
 	    var url = "/" + fn + "/" + args.join("/");
-	    if (this.debug) {
+	    if (self.debug) {
 		console.log(url);
 		return instantPromise();
 	    } else
@@ -41,11 +43,12 @@ Server.prototype = {
     },
 
     callFilterFn: function(fn, legalValues) {
+	var self = this;
 	return function(filter) {
 	    legalValues = legalValues || [];
 	    legalValues.push("or-filter", "and-filter", "not-filter", "all-filter");
 	    assertLegalForm(filter, legalValues);
-	    return this.callFn(fn)(JSON.stringify(filter));
+	    return self.callFn(fn)(JSON.stringify(filter));
 	};
     },
 

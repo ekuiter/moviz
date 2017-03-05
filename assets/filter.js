@@ -18,8 +18,9 @@ Filter.prototype = {
 	return label.append(input).append(text || name);
     },
 
-    getCheckedFilters: function() {
-	return $(this.sel).find("input:checkbox:checked").map(function() {
+    getCheckedFilters: function(sel) {
+	sel = sel || this.sel;
+	return $(sel).find("input:checkbox:checked").map(function() {
 	    return $(this).val();
 	}).get();
     },

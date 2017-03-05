@@ -4,6 +4,8 @@ function NodeFilter() {
     var self = this;
     Filter.call(self, "#node-filter .filters");
 
+    $("#node-filter").prepend(self.constructFilterLabel("neighborhood-filter", "Neighborhood"));
+
     $("#node-filter .all").click(function() {
 	self.checkedFilters = self.allNodes;
 	self.update();
@@ -47,8 +49,18 @@ NodeFilter.prototype.invalidate = function() {
     });
 };
 
+NodeFilter.prototype.getCheckedFilters = function() {
+    return Filter.prototype.getCheckedFilters.call(this, "#node-filter");
+};
+
 NodeFilter.prototype.update = function() {
-    App().server.filterNodes(["or-filter"].concat(this.checkedFilters.map(function(node) {
-	return ["movie-filter", node];
-    })));
+    console.log(this.checkedFilters);
+    var nhFilter = "neighborhood-filter";
+    var filterType = this.checkedFilters.indexOf(nhFilter) !== -1 ? nhFilter : "movie-filter";
+    App().server.filterNodes(["or-filter"].concat(
+	this.checkedFilters.
+	    filter(function(node) { return node !== nhFilter; }).
+	    map(function(node) {
+		return [filterType, node];
+	    })));
 };
