@@ -21,6 +21,14 @@ var App = (function() {
 	    buttons: { "Okay": function() { $(this).dialog("close"); } }
 	});
 
+	$("#empty-graph .add").click(function() {
+	    $("#add").click();
+	});
+
+	$("#empty-graph .all").click(function() {
+	    $("#node-filter .all").click();
+	});
+
 	$("body").show();
     }
 })();

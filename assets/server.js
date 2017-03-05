@@ -27,6 +27,7 @@ Server.prototype = {
 	var self = this;
 	return function(arr) {
 	    var args = Array.isArray(arr) ? arr : Array.prototype.slice.call(arguments);
+	    args = args.filter(function(arg) { return arg !== "." && arg !== ".."; });
 	    assertLegalValues(args, legalValues);
 	    var url = "/" + fn + "/" + args.join("/");
 	    if (self.debug) {

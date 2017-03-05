@@ -86,7 +86,11 @@
   (let ((body (make-html
 		(:div :id "wrapper"
 		      (:div :id "sidebar-pad")
-		      (:object :id "graph" :type "image/svg+xml"))
+		      (:object :id "graph" :type "image/svg+xml")
+		      (:div :id "empty-graph" (:p "Nothing here.")
+			    (:p (:a :href "#" :class "add" "Add some movies")
+				(:span :class "show" " or "
+				       (:a :href "#" :class "all" "show them all")) ".")))
 		(:div :id "sidebar"
 		      (:ul :id "menu"
 			   (:li :class "ui-widget-header" (:div "movie-graph"))

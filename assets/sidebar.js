@@ -38,7 +38,10 @@ function Sidebar() {
 	    var movies = extractMovies(req.term);
 	    var moviesButLast = movies.slice(0, movies.length - 1);
 	    if (movies.length && movies[movies.length - 1])
-		App().server.suggest(movies[movies.length - 1]).then(function(data) {
+		App().server.suggest(movies[movies.length - 1]).fail(function() {
+		    $("#error-dialog").dialog("close");
+		    res();
+		}).then(function(data) {
 		    return asList(data).map(function(movie) {
 			return { label: movie, value: moviesButLast.concat(movie).join(", ") };
 		    });
@@ -55,7 +58,13 @@ function Sidebar() {
     }
     
     function addMovies() {
-	App().server.add(extractMovies($("#add-dialog input").val()));
+	var movies = extractMovies($("#add-dialog input").val());
+	App().server.add(movies).then(function() {
+	    movies.forEach(function(movie) {
+		App().nodeFilter.checkFilter(movie);
+	    });
+	    App().nodeFilter.update();
+	});
 	$("#add-dialog").dialog("close");
     }
 

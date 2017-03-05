@@ -45,6 +45,7 @@ NodeFilter.prototype.invalidate = function() {
 	$(self.sel).parent().controlgroup({ direction: "vertical" }).
 	    find(".buttons").controlgroup();
 	$(self.sel).controlgroup({ direction: "vertical" });
+	self.showGraph(nodes, true);
     });
 };
 
@@ -52,13 +53,28 @@ NodeFilter.prototype.getCheckedFilters = function() {
     return Filter.prototype.getCheckedFilters.call(this, "#node-filter");
 };
 
+NodeFilter.prototype.checkFilter = function(filter) {
+    if (this.checkedFilters.indexOf(filter) === -1)
+	this.checkedFilters.push(filter);
+};
+
+NodeFilter.prototype.showGraph = function(nodes, invalidating) {
+    var nodeExists = nodes.length !== 0;
+    if (!invalidating || !nodeExists) {
+	$("#graph")[nodeExists ? "show" : "hide"]();
+	$("#empty-graph")[nodeExists ? "hide" : "show"]();
+    }
+    if (invalidating)
+	$("#empty-graph .show")[nodeExists ? "show" : "hide"]();
+};
+
 NodeFilter.prototype.update = function() {
     var nhFilter = "neighborhood-filter";
     var filterType = this.checkedFilters.indexOf(nhFilter) !== -1 ? nhFilter : "movie-filter";
+    var checkedFilters = this.checkedFilters.filter(function(node) { return node !== nhFilter; });
+    this.showGraph(checkedFilters);
     App().server.filterNodes(["or-filter"].concat(
-	this.checkedFilters.
-	    filter(function(node) { return node !== nhFilter; }).
-	    map(function(node) {
-		return [filterType, node];
-	    })));
+	checkedFilters.map(function(node) {
+	    return [filterType, node];
+	})));
 };
