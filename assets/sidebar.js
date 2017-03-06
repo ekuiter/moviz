@@ -60,13 +60,14 @@ function Sidebar(initialized) {
     
     function addMovies() {
 	var movies = extractMovies($("#add-dialog input").val());
-	App().server.add(movies).then(function() {
+	App().server.add(movies);
+	$("#add-dialog").dialog("close");
+	App().progress.report().done(function() {
 	    movies.forEach(function(movie) {
 		App().nodeFilter.checkFilter(movie);
 	    });
 	    App().nodeFilter.update();
 	});
-	$("#add-dialog").dialog("close");
     }
 
     makeMenuDialog("#debug", "#debug-dialog", { buttons: { "Eval": eval } }, function() {

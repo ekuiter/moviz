@@ -4,6 +4,8 @@
 (defvar *graph-classes* nil)
 (defvar *node-filter* (graph:all-filter))
 (defvar *edge-filter* (graph:all-filter))
+(defvar *destructive-operation-running* nil)
+(defvar *destructive-operation-progress* "")
 
 (load-plugins)
 (setf (cl-who:html-mode) :html5)
@@ -32,7 +34,8 @@
 (defmacro make-html (&body body)
   (let ((stylesheets (list "jquery-ui.min" "app"))
 	(scripts (list "jquery.min" "jquery-ui.min" "helpers" "server" "filter"
-		       "node-filter" "edge-filter" "graph-classes" "sidebar" "app")))
+		       "node-filter" "edge-filter" "graph-classes" "sidebar"
+		       "progress" "app")))
     `(with-html-string
        (:html (:head (:title "movie-graph")
 		     (:meta :charset "utf-8")
@@ -47,17 +50,26 @@
 	      (:body ,@body)))))
 
 (defun update-graph (&key (graph-classes *graph-classes*) (node-filter *node-filter*)
-		       (edge-filter *edge-filter*))
+		       (edge-filter *edge-filter*) (body ""))
   (let ((graph (eval `(app:make-graph (app:current-graph) ,@graph-classes))))
     (setf graph (graph:filter-nodes graph node-filter)
 	  graph (graph:filter-edges graph edge-filter)
 	  *graph-classes* graph-classes *node-filter* node-filter *edge-filter* edge-filter)
-    (app:make-image graph +graph-path+ :format "svg")))
+    (app:make-image graph +graph-path+ :format "svg"))
+  body)
 
 (defmacro def-graph-route (options (bind-request bind-response &optional bind-args) &body body)
   `(defroute ,options (,bind-request ,bind-response ,bind-args)
-     (apply #'update-graph (progn ,@body))
-     (send-response res :body "")))
+     (let ((body (apply #'update-graph (progn ,@body))))
+       (unless (eql body :none)
+	 (send-response res :body body)))))
+
+(defmacro def-destructive-graph-route (options (bind-request bind-response &optional bind-args)
+				       &body body)
+  `(def-graph-route ,options (,bind-request ,bind-response ,bind-args)
+     (when *destructive-operation-running*
+       (error "a destructive operation is already running"))
+     ,@body))
 
 (defun json-to-filter (json)
   (let ((*string* nil))
@@ -134,7 +146,9 @@
 		      (:p "Enter any Lisp form to evaluate on the server:")
 		      (:input)
 		      (:p :class "progress")
-		      (:p :class "results")))))
+		      (:p :class "results"))
+		(:div :id "progress-dialog" :title "Adding movies ..."
+		      (:p :class "progress")))))
     (send-response res :headers '(:content-type "text/html; charset=utf-8") :body body)))
 
 (defroute (:get "/graph/nodes/") (req res)
@@ -143,13 +157,38 @@
 (defroute (:get "/graph/edges/") (req res)
   (send-json-response res (graph:edges (app:current-graph))))
 
-(def-graph-route (:get "/clear/") (req res)
+(def-destructive-graph-route (:get "/clear/") (req res)
   (app:clear-graph)
   nil)
 
-(def-graph-route (:get "/add/(.*)") (req res (movies))
-  (apply #'app:add-movies (split-sequence #\/ movies :remove-empty-subseqs t))
+(def-destructive-graph-route (:get "/add/(.*)") (req res (movies))
+  (flet ((fn ()
+	   (let ((stream (make-string-output-stream)))
+	     (setf *destructive-operation-running* stream)
+	     (unwind-protect (let ((*standard-output* *destructive-operation-running*))
+			       (apply #'app:add-movies
+				      (split-sequence #\/ movies :remove-empty-subseqs t)))
+	       (setf *destructive-operation-running* nil
+		     *destructive-operation-progress* "")
+	       (close stream)))))
+    (ccl:process-run-function "add-movies" #'fn))
   nil)
+
+(defun calculate-progress (progress-string)
+  (let ((percent (parse-integer
+		  (first (last (cl-ppcre:all-matches-as-strings "\\d{2}|\\d" progress-string)))))
+	(actresses (search "actresses" progress-string)))
+    (+ (if actresses 50 0) (/ percent 2))))
+
+(defroute (:get "/progress/") (req res)
+  (let ((result
+	 (if *destructive-operation-running*
+	     (calculate-progress (setf *destructive-operation-progress*
+				       (concatenate 'string *destructive-operation-progress*
+						    (get-output-stream-string
+						     *destructive-operation-running*))))
+	     nil)))
+    (send-json-response res result)))
 
 (def-graph-route (:get "/update/(.*)") (req res (classes))
   (list :graph-classes (mapcar (lambda (class) (intern (string-upcase class) :app))

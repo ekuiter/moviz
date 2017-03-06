@@ -110,3 +110,10 @@ a:link, a:visited {
     display: none;
     height: 20px;
 }
+
+#progress-dialog .progress .ui-progressbar-value {
+    font-weight: normal;
+    line-height: 32px;
+    text-align: center;
+    width: 100%;
+}

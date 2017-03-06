@@ -7,6 +7,7 @@ function Server(initialized) {
     this.getEdges = this.callFn("graph/edges");
     this.clear = this.invalidateFn(this.callFn("clear"));
     this.add = this.invalidateFn(this.callFn("add"));
+    this.progress = this.callFn("progress");
     this.update = this.invalidateFn(this.callFn("update", ["unlabeled", "detailed", "condensed",
 							   "weighted", "top-actors"]));
     this.filterNodes = this.invalidateFn(

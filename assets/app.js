@@ -25,7 +25,8 @@ var App = (function() {
 	    }
 	})();
 
-	initialize(["server", "nodeFilter", "edgeFilter", "graphClasses", "sidebar"]);
+	initialize(["server", "nodeFilter", "edgeFilter", "graphClasses",
+		    "sidebar", "progress"]);
 	self.server.shouldInvalidate(self.nodeFilter);
 
 	makeDialog("#error-dialog", {
@@ -49,8 +50,10 @@ var App = (function() {
     }
 })();
 
-App.prototype.reportError = function(err) {
-    $("#error-dialog").text(err).dialog("open");
+App.prototype = {
+    reportError: function(err) {
+	$("#error-dialog").text(err).dialog("open");
+    }
 };
 
 $(document).ready(App);
