@@ -128,6 +128,8 @@
 		(:div :id "add-dialog" :title "Add movies"
 		      (:p "Enter some movie titles:")
 		      (:input))
+		(:div :id "clear-dialog" :title "Clear graph"
+		      (:p "Do you really want to remove all movies?"))
 		(:div :id "debug-dialog" :title "Debug"
 		      (:p "Enter any Lisp form to evaluate on the server:")
 		      (:input)

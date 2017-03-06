@@ -29,7 +29,9 @@ var App = (function() {
 	    $("#node-filter .all").click();
 	});
 
-	$("body").show();
+	defer(function() {
+	    $("body").css("opacity", 1);
+	});
     }
 })();
 

@@ -42,7 +42,11 @@ function asList(obj) {
 }
 
 function makeDialog(sel, options) {
-    $(sel).dialog($.extend({ autoOpen: false, modal: true, width: 400 }, options));
+    $(sel).dialog($.extend({
+	autoOpen: false, modal: true, width: 400,
+	show: { effect: "fadeIn", duration: 150 },
+	hide: { effect: "fadeOut", duration: 150 }
+    }, options));
 }
 
 function makeMenuDialog(buttonSel, dialogSel, options, cb) {
@@ -52,4 +56,8 @@ function makeMenuDialog(buttonSel, dialogSel, options, cb) {
 	if (cb)
 	    cb();
     });
+}
+
+function defer(fn, ms) {
+    return window.setTimeout(fn, ms || 0);
 }

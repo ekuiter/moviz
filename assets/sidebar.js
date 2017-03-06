@@ -1,9 +1,5 @@
 function Sidebar() {
     $("#menu").menu({ items: "> :not(.ui-widget-header)" });
-    
-    $("#clear").click(function() {
-	App().server.clear();
-    });
 
     $("#collapse").click(function() {
 	if ($("#sidebar").hasClass("collapsing"))
@@ -17,18 +13,23 @@ function Sidebar() {
 	var shouldHide = $(this).find(".text").text() === "Hide";
 	$(this).find(".text").text(shouldHide ? "Show" : "Hide");
 	
-	window.setTimeout(function() {
+	defer(function() {
 	    $("#sidebar").height(shouldHide ? $("#menu").height() + 2 : "100%");
 	}, shouldHide ? 0 : duration);
-	window.setTimeout(function() {
+	defer(function() {
 	    $("#sidebar").toggleClass("collapsed");
 	}, shouldHide ? duration : 0);
-	window.setTimeout(function() {
+	defer(function() {
 	    $("#sidebar").removeClass("collapsing");
 	}, duration);
     });	
 
     makeMenuDialog("#info", "#info-dialog");
+
+    makeMenuDialog("#clear", "#clear-dialog", { buttons: { "Yes": function() {
+	App().server.clear();
+	$("#clear-dialog").dialog("close");
+    } } });
 
     makeMenuDialog("#add", "#add-dialog", { buttons: { "Add": addMovies } },
 		   function() { $("#add-dialog input").val(""); });
