@@ -8,12 +8,24 @@ var App = (function() {
 	    return new App();
 	self = this;
 	window.onerror = self.reportError;
-	
-	self.server = new Server();
-	self.nodeFilter = new NodeFilter();
-	self.edgeFilter = new EdgeFilter();
-	self.graphClasses = new GraphClasses();
-	self.sidebar = new Sidebar();
+
+	var initialize = (function() {
+	    var initializing = [];
+
+	    return function(props) {
+		props.forEach(function(prop) {
+		    var klass = eval(prop.substr(0, 1).toUpperCase() + prop.substr(1));
+		    initializing.push(prop);
+		    self[prop] = new klass(function() {
+			initializing.splice(initializing.indexOf(prop), 1);
+			if (initializing.length === 0)
+			    allInitialized();
+		    });
+		});
+	    }
+	})();
+
+	initialize(["server", "nodeFilter", "edgeFilter", "graphClasses", "sidebar"]);
 	self.server.shouldInvalidate(self.nodeFilter);
 
 	makeDialog("#error-dialog", {
@@ -29,9 +41,11 @@ var App = (function() {
 	    $("#node-filter .all").click();
 	});
 
-	defer(function() {
-	    $("body").css("opacity", 1);
-	});
+	function allInitialized() {
+	    defer(function() {
+		$("body").css("opacity", 1);
+	    });
+	}
     }
 })();
 

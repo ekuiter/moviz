@@ -1,4 +1,4 @@
-function Sidebar() {
+function Sidebar(initialized) {
     $("#menu").menu({ items: "> :not(.ui-widget-header)" });
 
     $("#collapse").click(function() {
@@ -22,7 +22,7 @@ function Sidebar() {
 	defer(function() {
 	    $("#sidebar").removeClass("collapsing");
 	}, duration);
-    });	
+    });
 
     makeMenuDialog("#info", "#info-dialog");
 
@@ -94,4 +94,6 @@ function Sidebar() {
 	    });
 	}
     }
+
+    initialized();
 }

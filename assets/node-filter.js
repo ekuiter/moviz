@@ -1,4 +1,4 @@
-function NodeFilter() {
+function NodeFilter(initialized) {
     if (!(this instanceof NodeFilter))
 	return new NodeFilter();
     var self = this;
@@ -18,7 +18,7 @@ function NodeFilter() {
 
     self.getNodes().then(function() {
 	$("#node-filter .all").click();
-    });
+    }).then(initialized);
 };
 
 NodeFilter.prototype = Object.create(Filter.prototype);
@@ -73,7 +73,7 @@ NodeFilter.prototype.update = function() {
     var filterType = this.checkedFilters.indexOf(nhFilter) !== -1 ? nhFilter : "movie-filter";
     var checkedFilters = this.checkedFilters.filter(function(node) { return node !== nhFilter; });
     this.showGraph(checkedFilters);
-    App().server.filterNodes(["or-filter"].concat(
+    return App().server.filterNodes(["or-filter"].concat(
 	checkedFilters.map(function(node) {
 	    return [filterType, node];
 	})));

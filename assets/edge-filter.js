@@ -1,4 +1,4 @@
-function EdgeFilter() {
+function EdgeFilter(initialized) {
     if (!(this instanceof EdgeFilter))
 	return new EdgeFilter();
     var self = this;
@@ -44,7 +44,7 @@ function EdgeFilter() {
     self.forFilters(function(filterObj) {
 	filterObj.afterConstruct && filterObj.afterConstruct.call(filterObj);
     });
-    self.update();
+    self.update().then(initialized);
 };
 
 EdgeFilter.prototype = Object.create(Filter.prototype);
@@ -70,8 +70,9 @@ EdgeFilter.prototype.getCheckedFilters = function() {
 
 EdgeFilter.prototype.update = function() {
     var self = this;
-    App().server.filterEdges(["and-filter"].concat(this.checkedFilters.map(function(filter) {
-	var filterObj = self.availableFilters[filter];
-	return filterObj.update.call(filterObj);
-    })));
+    return App().server.filterEdges(
+	["and-filter"].concat(this.checkedFilters.map(function(filter) {
+	    var filterObj = self.availableFilters[filter];
+	    return filterObj.update.call(filterObj);
+	})));
 };

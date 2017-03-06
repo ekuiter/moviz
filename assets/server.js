@@ -1,8 +1,7 @@
-function Server(debug) {
+function Server(initialized) {
     if (!(this instanceof Server))
 	return new Server(debug);
     
-    this.debug = debug;
     this.invalidatables = [];
     this.getNodes = this.callFn("graph/nodes");
     this.getEdges = this.callFn("graph/edges");
@@ -19,7 +18,7 @@ function Server(debug) {
     this.inverseSearch = this.callFn("inverse-search");
     this.suggest = this.callFn("suggest");
     this.eval = this.callFn("eval");
-    this.update();
+    this.update().then(initialized);
 };
 
 Server.prototype = {

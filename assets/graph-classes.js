@@ -1,4 +1,4 @@
-function GraphClasses() {
+function GraphClasses(initialized) {
     if (!(this instanceof GraphClasses))
 	return new GraphClasses();
     var self = this;
@@ -11,7 +11,7 @@ function GraphClasses() {
 	$(self.sel).append(self.constructFilterLabel.apply(self, arr));
     });
     $(self.sel).controlgroup({ direction: "vertical" });
-    self.update();
+    self.update().then(initialized);
 };
 
 GraphClasses.prototype = Object.create(Filter.prototype);
@@ -20,5 +20,5 @@ GraphClasses.prototype.constructor = GraphClasses;
 GraphClasses.prototype.update = function() {
     if (this.checkedFilters.length === 0)
 	this.checkedFilters.push("unlabeled");
-    App().server.update(this.checkedFilters);
+    return App().server.update(this.checkedFilters);
 };
