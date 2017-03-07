@@ -36,7 +36,7 @@
   (let ((stylesheets (list "jquery-ui.min" "app"))
 	(scripts (list "jquery.min" "jquery-ui.min" "helpers" "server" "filter"
 		       "node-filter" "edge-filter" "graph-classes" "sidebar"
-		       "progress" "app")))
+		       "add-movies" "progress" "debug" "app")))
     `(with-html-string
        (:html (:head (:title "movie-graph")
 		     (:meta :charset "utf-8")

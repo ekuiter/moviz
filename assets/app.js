@@ -15,7 +15,8 @@ var App = (function() {
 	    return function(props) {
 		props.forEach(function(prop) {
 		    var klass = eval(prop.substr(0, 1).toUpperCase() + prop.substr(1));
-		    initializing.push(prop);
+		    if (klass.length)
+			initializing.push(prop);
 		    self[prop] = new klass(function() {
 			initializing.splice(initializing.indexOf(prop), 1);
 			if (initializing.length === 0)
@@ -26,7 +27,7 @@ var App = (function() {
 	})();
 
 	initialize(["server", "nodeFilter", "edgeFilter", "graphClasses",
-		    "sidebar", "progress"]);
+		    "sidebar", "addMovies", "progress", "debug"]);
 	self.server.shouldInvalidate(self.nodeFilter);
 
 	makeDialog("#error-dialog", {

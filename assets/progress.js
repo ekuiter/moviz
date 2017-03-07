@@ -1,4 +1,4 @@
-function Progress(initialized) {
+function Progress() {
     var self = this;
     
     makeDialog("#progress-dialog", {
@@ -6,8 +6,6 @@ function Progress(initialized) {
 	buttons: { "Abort": function() { self.abort(); } }
     });
     $("#progress-dialog .progress").progressbar();
-    
-    initialized();
 }
 
 Progress.prototype = {

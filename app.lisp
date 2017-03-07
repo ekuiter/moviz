@@ -117,6 +117,8 @@
 
 (defmethod add-node :around ((graph movie-graph) (node-1 movie-node))
   (load-nodes node-1)
+  (unless (or (actors node-1) (actresses node-1))
+    (return-from add-node graph))
   (call-next-method)
   (labels ((add-edges (node-1 node-2 accessor gender)
 	     (loop for (role-1 role-2) in (intersect-movie-nodes accessor node-1 node-2) do
