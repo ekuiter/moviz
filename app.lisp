@@ -4,11 +4,7 @@
 
 (defclass movie-node (node movie)
   ((actors :initform :undefined)
-   (actresses :initform :undefined)
-   (actors-list :allocation :class
-	       :initform (make-list-instance 'actors))
-   (actresses-list :allocation :class
-		 :initform (make-list-instance 'actresses))))
+   (actresses :initform :undefined)))
 
 (defclass role-edge (edge)
   ((role-1 :initarg :role-1
@@ -20,6 +16,48 @@
    (gender :initarg :gender
 	   :initform nil
 	   :reader gender)))
+
+(defvar *graph* (make-instance 'movie-graph))
+(defvar *encoding-vertices* nil)
+(defvar *decoded-vertices* nil)
+
+(json-helpers:make-decodable
+ movie actor role
+ (role-edge :decode (role-edge
+		     (with-slots (gender) role-edge
+		       (setf gender (intern (string-upcase gender) :keyword)))))
+ (movie-graph :encode (nil graph
+			   (let ((*encoding-vertices* t))
+			     (json:encode-object-member :vertices (vertices graph) stream))
+			   (json:encode-object-member
+			    :edges (make-instance 'json-helpers:json-hash-table
+						  :hash-table (slot-value graph 'edges))
+			    stream))))
+
+(defclass json-movie-node ()
+  ((movie-node :initarg :movie-node)))
+
+(defmethod json:make-object (bindings (class (eql 'json-movie-node)) &optional superclasses)
+  (declare (ignore superclasses))
+  (if (> (length bindings) 1)
+      (let ((movie-node (json-helpers:allocate-and-populate-instance
+			 (find-class 'movie-node) bindings)))
+	(push movie-node *decoded-vertices*)
+	movie-node)
+      (find (cdr (assoc 'title bindings)) *decoded-vertices* :test #'equal :key #'title)))
+
+(json-helpers:encode-with-prototype
+ movie-node (:lisp-class 'json-movie-node :lisp-package :app) movie-node
+ (if *encoding-vertices*
+     (json::map-slots (json:stream-object-member-encoder stream) movie-node)
+     (json:encode-object-member :title (title movie-node) stream)))
+
+(defun encode-graph ()
+  (json:encode-json-to-string *graph*))
+
+(defun restore-graph (str)
+  (let ((*decoded-vertices* nil))
+    (setf *graph* (json-helpers:decode-object-from-string str))))
 
 (defmacro defgraphclass (class superclasses)
   `(progn (defclass ,class ,superclasses ())
@@ -53,11 +91,7 @@
   (string<= (title node-1) (title node-2)))
 
 (defmethod label ((node movie-node))
-  (title node))  
-
-(defmethod json:encode-json ((node movie-node) &optional stream)
-  (json:with-object (stream)
-    (json:encode-object-member :title (title node) stream)))
+  (title node))
 
 (defmethod label ((edge role-edge))
   (readable-name (actor (role-1 edge))))
@@ -71,21 +105,25 @@
 (defmethod has-movie ((edge role-edge) (movie movie))
   (or (movie= movie (node-1 edge)) (movie= movie (node-2 edge))))
 
-(defmacro define-lazy-slot (slot class-slot)
+(defmacro define-lazy-slot (slot)
   `(progn (defmethod ,slot ((node movie-node))
-	    (with-slots (,slot ,class-slot) node
-	      (if (eql ,slot :undefined)
-		  (setf ,slot (inverse-search ,class-slot node))
-		  ,slot)))
+	    (cond ((not (slot-boundp node ',slot))
+		   (setf (slot-value node ',slot)
+			 (slot-value
+			  (find node (vertices *graph*) :test #'movie=) ',slot)))
+		  ((eql (slot-value node ',slot) :undefined)
+		   (setf (slot-value node ',slot)
+			 (inverse-search (make-list-instance ',slot) node)))
+		  (t (slot-value node ',slot))))
 	  (defmethod ,slot ((nodes cons))
 	    (assert nodes)
-	    (let ((results (inverse-search (slot-value (first nodes) ',class-slot) nodes)))
+	    (let ((results (inverse-search (make-list-instance ',slot) nodes)))
 	      (loop for node being the hash-keys in results using (hash-value node-results) do
 		   (setf (slot-value node ',slot) node-results)))
 	    nil)))
 
-(define-lazy-slot actors actors-list)
-(define-lazy-slot actresses actresses-list)
+(define-lazy-slot actors)
+(define-lazy-slot actresses)
 
 (defmethod total-actors ((node movie-node))
   (+ (length (actors node)) (length (actresses node))))
@@ -185,12 +223,8 @@
   (movie= (make-instance 'movie :title title) node))
 
 (deffilter neighborhood ((movie movie)) node
-  (format t "~a~%" node)
-  (let ((r
-	 (find-if (lambda (edge) (and (has-movie edge movie) (has-movie edge node)))
-		  (edges *graph*))))
-    (format t "~a~%" r)
-    r))
+  (find-if (lambda (edge) (and (has-movie edge movie) (has-movie edge node)))
+	   (edges *graph*)))
 
 (deffilter neighborhood ((title string)) node
   (funcall (neighborhood-filter (make-instance 'movie :title title)) node))
@@ -235,8 +269,6 @@
 
 (defmethod show ((graph movie-graph) &key (open t) (format "png"))
   (call-next-method graph :open open :format format))
-
-(defvar *graph* (make-instance 'movie-graph))
 
 (defun current-graph ()
   *graph*)

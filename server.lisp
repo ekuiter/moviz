@@ -72,28 +72,10 @@
        (error "a destructive operation is already running"))
      ,@body))
 
-(defun json-to-filter (json)
-  (let ((*string* nil))
-    (declare (special *string*))
-    (flet ((beginning () (setf *string* (make-array 0 :fill-pointer 0
-						    :adjustable t :element-type 'character)))
-	   (parse-token (token) (vector-push-extend token *string*))
-	   (end ()
-	     (let ((string-upcase (string-upcase *string*)))
-	       (if (search "-FILTER" string-upcase)
-		   (or (find-symbol string-upcase :graph)
-		       (find-symbol string-upcase :app)
-		       (error "~a is not a filter" *string*))
-		   *string*))))
-      (json:bind-custom-vars
-	  (:beginning-of-string #'beginning :string-char #'parse-token
-				:end-of-string #'end :string-scope '(*string*))
-	(let ((form (json:decode-json-from-string json)))
-	  (values (eval form) form))))))
-
 (defmacro def-filter-route (path keyword)
   `(def-graph-route (:get ,path) (req res (filter-json))
-     (list ,keyword (json-to-filter filter-json))))
+     (list ,keyword (eval (json-helpers:to-form filter-json :to-symbol "-FILTER"
+						:packages '(:graph :app))))))
 
 (defroute (:get "/") (req res)
   (let ((body (make-html
@@ -214,6 +196,10 @@
 
 (defroute (:get "/eval/(.+)") (req res (form))
   (send-json-response res (eval (read-from-string form))))
+
+(defroute (:get "/graph/") (req res)
+  (send-response res :headers '(:content-type "application/javascript")
+		 :body (app:encode-graph)))
 
 (def-directory-route "/assets" "./assets")
 
