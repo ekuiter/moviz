@@ -1,6 +1,9 @@
 function Progress(initialized) {
+    var self = this;
+    
     makeDialog("#progress-dialog", {
-	dialogClass: "no-close"
+	dialogClass: "no-close",
+	buttons: { "Abort": function() { self.abort(); } }
     });
     $("#progress-dialog .progress").progressbar();
     
@@ -17,6 +20,13 @@ Progress.prototype = {
     report: function() {
 	var self = this;
 	var defer = $.Deferred();
+
+	self.abort = function() {
+	    $("#progress-dialog").dialog("close");
+	    defer.reject();
+	    App().server.abort();
+	};
+	
 	self.queue(function fn(data) {
 	    if (data !== null) {
 		$("#progress-dialog").dialog("open");

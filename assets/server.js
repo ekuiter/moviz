@@ -8,6 +8,7 @@ function Server(initialized) {
     this.clear = this.invalidateFn(this.callFn("clear"));
     this.add = this.invalidateFn(this.callFn("add"));
     this.progress = this.callFn("progress");
+    this.abort = this.callFn("abort");
     this.update = this.invalidateFn(this.callFn("update", ["unlabeled", "detailed", "condensed",
 							   "weighted", "top-actors"]));
     this.filterNodes = this.invalidateFn(

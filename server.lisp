@@ -6,6 +6,7 @@
 (defvar *edge-filter* (graph:all-filter))
 (defvar *destructive-operation-running* nil)
 (defvar *destructive-operation-progress* "")
+(defvar *destructive-operation-process* nil)
 
 (load-plugins)
 (setf (cl-who:html-mode) :html5)
@@ -169,10 +170,17 @@
 			       (apply #'app:add-movies
 				      (split-sequence #\/ movies :remove-empty-subseqs t)))
 	       (setf *destructive-operation-running* nil
-		     *destructive-operation-progress* "")
+		     *destructive-operation-progress* ""
+		     *destructive-operation-process* nil)
 	       (close stream)))))
-    (ccl:process-run-function "add-movies" #'fn))
+    (setf *destructive-operation-process* (ccl:process-run-function "add-movies" #'fn)))
   nil)
+
+(defroute (:get "/abort/") (req res)
+  (send-json-response res
+		      (when *destructive-operation-process*
+			(ccl:process-kill *destructive-operation-process*)
+			t)))
 
 (defun calculate-progress (progress-string)
   (let ((percent (parse-integer

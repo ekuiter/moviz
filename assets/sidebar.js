@@ -60,13 +60,15 @@ function Sidebar(initialized) {
     
     function addMovies() {
 	var movies = extractMovies($("#add-dialog input").val());
-	App().server.add(movies);
-	$("#add-dialog").dialog("close");
-	App().progress.report().done(function() {
-	    movies.forEach(function(movie) {
-		App().nodeFilter.checkFilter(movie);
+	App().server.add(movies).always(function() {
+	    $("#add-dialog").dialog("close");
+	}).done(function() {
+	    App().progress.report().done(function() {
+		movies.forEach(function(movie) {
+		    App().nodeFilter.checkFilter(movie);
+		});
+		App().nodeFilter.update();
 	    });
-	    App().nodeFilter.update();
 	});
     }
 
