@@ -20,6 +20,7 @@ function Server(initialized) {
     this.inverseSearch = this.callFn("inverse-search");
     this.suggest = this.callFn("suggest");
     this.eval = this.callFn("eval");
+    this.loadGraph = this.invalidateFn(this.callFn("graph/load"));
     this.update().then(initialized);
 };
 
@@ -74,5 +75,9 @@ Server.prototype = {
 
     shouldInvalidate: function(obj) {
 	this.invalidatables.push(obj);
+    },
+
+    saveGraph: function() {
+	document.location.href = "/graph/save/";
     }
 };

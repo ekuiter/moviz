@@ -32,10 +32,7 @@ function AddMovies() {
 	    $("#add-dialog").dialog("close");
 	}).done(function() {
 	    App().progress.report().done(function() {
-		movies.forEach(function(movie) {
-		    App().nodeFilter.checkFilter(movie);
-		});
-		App().nodeFilter.update();
+		App().nodeFilter.checkAllFilters();
 	    });
 	});
     }

@@ -25,9 +25,4 @@ function Sidebar() {
     });
 
     makeMenuDialog("#info", "#info-dialog");
-
-    makeMenuDialog("#clear", "#clear-dialog", { buttons: { "Yes": function() {
-	App().server.clear();
-	$("#clear-dialog").dialog("close");
-    } } });
 }

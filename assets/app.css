@@ -106,7 +106,7 @@ a:link, a:visited {
     font-family: Consolas, Monaco, Lucida Console, Courier New, monospace;
 }
 
-#debug-dialog .progress {
+#debug-dialog .progress, #load-dialog .progress {
     display: none;
     height: 20px;
 }

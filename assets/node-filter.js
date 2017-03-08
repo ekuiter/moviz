@@ -16,9 +16,7 @@ function NodeFilter(initialized) {
 	self.update();
     });
 
-    self.getNodes().then(function() {
-	$("#node-filter .all").click();
-    }).then(initialized);
+    self.checkAllFilters().then(initialized);
 };
 
 NodeFilter.prototype = Object.create(Filter.prototype);
@@ -56,6 +54,12 @@ NodeFilter.prototype.getCheckedFilters = function() {
 NodeFilter.prototype.checkFilter = function(filter) {
     if (this.checkedFilters.indexOf(filter) === -1)
 	this.checkedFilters.push(filter);
+};
+
+NodeFilter.prototype.checkAllFilters = function() {
+    return this.getNodes().then(function() {
+	$("#node-filter .all").click();
+    });
 };
 
 NodeFilter.prototype.showGraph = function(nodes, invalidating) {

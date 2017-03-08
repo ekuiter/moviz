@@ -27,7 +27,7 @@ var App = (function() {
 	})();
 
 	initialize(["server", "nodeFilter", "edgeFilter", "graphClasses",
-		    "sidebar", "addMovies", "progress", "debug"]);
+		    "sidebar", "addMovies", "progress", "debug", "graph"]);
 	self.server.shouldInvalidate(self.nodeFilter);
 
 	makeDialog("#error-dialog", {

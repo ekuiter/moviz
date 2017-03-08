@@ -20,6 +20,8 @@
 (defvar *graph* (make-instance 'movie-graph))
 (defvar *encoding-vertices* nil)
 (defvar *decoded-vertices* nil)
+(defvar *actors* (make-list-instance 'actors))
+(defvar *actresses* (make-list-instance 'actresses))
 
 (json-helpers:make-decodable
  movie actor role
@@ -47,7 +49,7 @@
       (find (cdr (assoc 'title bindings)) *decoded-vertices* :test #'equal :key #'title)))
 
 (json-helpers:encode-with-prototype
- movie-node (:lisp-class 'json-movie-node :lisp-package :app) movie-node
+ movie-node (:lisp-class :json-movie-node :lisp-package :app) movie-node
  (if *encoding-vertices*
      (json::map-slots (json:stream-object-member-encoder stream) movie-node)
      (json:encode-object-member :title (title movie-node) stream)))
@@ -105,7 +107,7 @@
 (defmethod has-movie ((edge role-edge) (movie movie))
   (or (movie= movie (node-1 edge)) (movie= movie (node-2 edge))))
 
-(defmacro define-lazy-slot (slot)
+(defmacro define-lazy-slot (slot var)
   `(progn (defmethod ,slot ((node movie-node))
 	    (cond ((not (slot-boundp node ',slot))
 		   (setf (slot-value node ',slot)
@@ -113,17 +115,17 @@
 			  (find node (vertices *graph*) :test #'movie=) ',slot)))
 		  ((eql (slot-value node ',slot) :undefined)
 		   (setf (slot-value node ',slot)
-			 (inverse-search (make-list-instance ',slot) node)))
+			 (inverse-search ,var node)))
 		  (t (slot-value node ',slot))))
 	  (defmethod ,slot ((nodes cons))
 	    (assert nodes)
-	    (let ((results (inverse-search (make-list-instance ',slot) nodes)))
+	    (let ((results (inverse-search ,var nodes)))
 	      (loop for node being the hash-keys in results using (hash-value node-results) do
 		   (setf (slot-value node ',slot) node-results)))
 	    nil)))
 
-(define-lazy-slot actors)
-(define-lazy-slot actresses)
+(define-lazy-slot actors *actors*)
+(define-lazy-slot actresses *actresses*)
 
 (defmethod total-actors ((node movie-node))
   (+ (length (actors node)) (length (actresses node))))

@@ -36,7 +36,7 @@
   (let ((stylesheets (list "jquery-ui.min" "app"))
 	(scripts (list "jquery.min" "jquery-ui.min" "helpers" "server" "filter"
 		       "node-filter" "edge-filter" "graph-classes" "sidebar"
-		       "add-movies" "progress" "debug" "app")))
+		       "add-movies" "progress" "debug" "graph" "app")))
     `(with-html-string
        (:html (:head (:title "movie-graph")
 		     (:meta :charset "utf-8")
@@ -77,6 +77,17 @@
      (list ,keyword (eval (json-helpers:to-form filter-json :to-symbol "-FILTER"
 						:packages '(:graph :app))))))
 
+(defun calculate-progress (progress-string)
+  (let ((percent (parse-integer
+		  (first (last (cl-ppcre:all-matches-as-strings "\\d{2}|\\d" progress-string)))))
+	(actresses (search "actresses" progress-string)))
+    (+ (if actresses 50 0) (/ percent 2))))
+
+(defun date-string ()
+  (multiple-value-bind (second minute hour date month year) (get-decoded-time)
+	   (declare (ignore second minute hour))
+	   (format nil "~4,'0d-~2,'0d-~2,'0d" year month date)))
+
 (defroute (:get "/") (req res)
   (let ((body (make-html
 		(:div :id "wrapper"
@@ -96,6 +107,10 @@
 				(:div (:span :class "ui-icon ui-icon-plusthick") "Add movies"))
 			   (:li :id "clear"
 				(:div (:span :class "ui-icon ui-icon-trash") "Clear graph"))
+			   (:li :id "save"
+				(:div (:span :class "ui-icon ui-icon-disk") "Save graph"))
+			   (:li :id "load"
+				(:div (:span :class "ui-icon ui-icon-document") "Load graph"))
 			   (:li :id "debug"
 				(:div (:span :class "ui-icon ui-icon-wrench") "Debug"))
 			   (:li :id "info"
@@ -125,6 +140,10 @@
 		      (:input))
 		(:div :id "clear-dialog" :title "Clear graph"
 		      (:p "Do you really want to remove all movies?"))
+		(:div :id "load-dialog" :title "Load graph"
+		      (:p "Enter the path of a graph file to load:")
+		      (:input)
+		      (:p :class "progress"))
 		(:div :id "debug-dialog" :title "Debug"
 		      (:p "Enter any Lisp form to evaluate on the server:")
 		      (:input)
@@ -164,12 +183,6 @@
 			(ccl:process-kill *destructive-operation-process*)
 			t)))
 
-(defun calculate-progress (progress-string)
-  (let ((percent (parse-integer
-		  (first (last (cl-ppcre:all-matches-as-strings "\\d{2}|\\d" progress-string)))))
-	(actresses (search "actresses" progress-string)))
-    (+ (if actresses 50 0) (/ percent 2))))
-
 (defroute (:get "/progress/") (req res)
   (let ((result
 	 (if *destructive-operation-running*
@@ -197,9 +210,21 @@
 (defroute (:get "/eval/(.+)") (req res (form))
   (send-json-response res (eval (read-from-string form))))
 
-(defroute (:get "/graph/") (req res)
-  (send-response res :headers '(:content-type "application/javascript")
+(defroute (:get "/graph/save/") (req res)
+  (send-response res :headers (list :content-type "application/javascript"
+				    :content-disposition
+				    (format nil "attachment; filename=graph ~a.json"
+					    (date-string)))
 		 :body (app:encode-graph)))
+
+(def-destructive-graph-route (:get "/graph/load/(.+)") (req res (file-name))
+  (with-open-file (stream file-name)
+    (let ((json (make-string (file-length stream))))
+      (read-sequence json stream)
+      (unless (eql (search "{\"prototype\":{\"lispClass\":\"movieGraph\"" json) 0)
+	(error "not a valid graph file"))
+      (app:restore-graph json)))
+  nil)
 
 (def-directory-route "/assets" "./assets")
 
