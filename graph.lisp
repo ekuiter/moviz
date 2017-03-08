@@ -1,6 +1,7 @@
 (in-package :graph)
 
 (defparameter +dot-command+ "/usr/local/bin/dot")
+(defvar *filter-mode* nil)
 
 ;;; Helpers
 
@@ -62,16 +63,24 @@
     subgraph))
 
 (defmethod filter-nodes ((graph graph) filter)
-  (let ((vertices (loop for node in (vertices graph)
-		     if (funcall filter node) collect node)))
+  (let* ((*filter-mode* :filter-nodes)
+	 (vertices (loop for node in (vertices graph)
+		      if (funcall filter node) collect node)))
     (subgraph graph vertices
 	      (loop for edge in (edges graph)
-		 if (and (find (node-1 edge) vertices) (find (node-2 edge) vertices))
+		 if (and (find (node-1 edge) vertices) (find (node-2 edge) vertices)
+			 (or (eql *filter-mode* :filter-nodes) (funcall filter edge)))
 		 collect edge))))
 
 (defmethod filter-edges ((graph graph) filter)
-  (subgraph graph (vertices graph)
-	    (loop for edge in (edges graph) if (funcall filter edge) collect edge)))
+  (let* ((relevant-vertices nil)
+	 (filtered-graph (subgraph graph (vertices graph)
+			  (loop for edge in (edges graph)
+		 	     if (funcall filter edge) do
+			       (pushnew (node-1 edge) relevant-vertices)
+			       (pushnew (node-2 edge) relevant-vertices)
+			     and collect edge))))
+    (subgraph filtered-graph relevant-vertices (edges filtered-graph))))
 
 (defmacro deffilter (name args type &body body)
   (let ((symbol (intern (format nil "~:@(~a~)-FILTER" name))))

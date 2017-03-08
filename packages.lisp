@@ -28,7 +28,8 @@
   (:use :common-lisp)
   (:export :graph :node :edge :node-1 :node-2 :add-node :add-edge :make-image :subgraph
 	   :make-image :show :to-dot :compare :label :vertices :edges :label-too-long-error
-	   :filter-nodes :filter-edges :deffilter :and-filter :or-filter :not-filter :all-filter))
+	   :filter-nodes :filter-edges :deffilter :and-filter :or-filter :not-filter :all-filter
+	   :*filter-mode*))
 
 (defpackage :app
   (:use :common-lisp :imdb :graph)

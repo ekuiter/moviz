@@ -224,9 +224,12 @@
 (deffilter movie ((title string)) node
   (movie= (make-instance 'movie :title title) node))
 
-(deffilter neighborhood ((movie movie)) node
-  (find-if (lambda (edge) (and (has-movie edge movie) (has-movie edge node)))
-	   (edges *graph*)))
+(deffilter neighborhood ((movie movie)) node-or-edge
+  (setf graph:*filter-mode* :filter-nodes-and-edges)
+  (cond ((typep node-or-edge 'movie-node)
+	 (find-if (lambda (edge) (and (has-movie edge movie) (has-movie edge node-or-edge)))
+		  (edges *graph*)))
+	((typep node-or-edge 'role-edge) (has-movie node-or-edge movie))))
 
 (deffilter neighborhood ((title string)) node
   (funcall (neighborhood-filter (make-instance 'movie :title title)) node))

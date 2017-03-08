@@ -38,7 +38,7 @@
 		       "node-filter" "edge-filter" "graph-classes" "sidebar"
 		       "add-movies" "progress" "debug" "graph" "app")))
     `(with-html-string
-       (:html (:head (:title "movie-graph")
+       (:html (:head (:title "moviz")
 		     (:meta :charset "utf-8")
 		     (:meta :name "viewport" :content "width=device-width, initial-scale=1")
 		     ,@(mapcar (lambda (stylesheet)
@@ -99,7 +99,7 @@
 				       (:a :href "#" :class "all" "show them all")) ".")))
 		(:div :id "sidebar"
 		      (:ul :id "menu"
-			   (:li :class "ui-widget-header" (:div "movie-graph"))
+			   (:li :class "ui-widget-header" (:div "moviz"))
 			   (:li :id "collapse"
 				(:div (:span :class "ui-icon ui-icon-triangle-1-n")
 				      (:span :class "text" "Hide")))
@@ -117,6 +117,8 @@
 				(:div (:span :class "ui-icon ui-icon-info") "Info")))
 		      (:p (:b "Style"))
 		      (:div :id "graph-classes")
+		      (:p (:b "Actors"))
+		      (:div :id "edge-filter")
 		      (:p (:b "Movies"))
 		      (:div :id "node-filter"
 			    (:div :class "buttons"
@@ -125,12 +127,11 @@
 			     (:button :class "none"
 				      (:span :class "ui-icon ui-icon-circle-minus") " None"))
 			    (:div :class "filters"))
-		      (:p (:b "Actors"))
-		      (:div :id "edge-filter"))
-		(:div :id "info-dialog" :title "movie-graph"
-		      (:p "movie-graph visualizes connections between movies using the IMDb.")
-		      (:p "Visit on GitHub: " (:a :href "https://github.com/ekuiter/movie-graph"
-						  "ekuiter/movie-graph"))
+		      (:p))
+		(:div :id "info-dialog" :title "moviz"
+		      (:p "moviz visualizes connections between movies using the IMDb.")
+		      (:p "Visit on GitHub: " (:a :href "https://github.com/ekuiter/moviz"
+						  "ekuiter/moviz"))
 		      (:p "Information courtesy of IMDb ("
 			  (:a :href "http://www.imdb.com" "imdb.com")
 			  "). Used with permission."))

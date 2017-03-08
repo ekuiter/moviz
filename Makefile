@@ -2,12 +2,12 @@
 
 all:
 	rm *.dx64fsl || true
-	echo "(ccl:save-application \"movie-graph\" :prepend-kernel t))" | ccl64 -e "(progn (load \"~/quicklisp/setup.lisp\") (load \"packages.lisp\"))"
+	echo "(ccl:save-application \"moviz\" :prepend-kernel t))" | ccl64 -e "(progn (load \"~/quicklisp/setup.lisp\") (load \"packages.lisp\"))"
 
 run: all
-	./movie-graph
-	
+	./moviz
+
 clean:
-	rm movie-graph || true
-	
+	rm moviz || true
+
 .PHONY: all run clean
