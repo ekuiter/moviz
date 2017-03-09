@@ -1,13 +1,73 @@
-const {app, BrowserWindow, net, dialog} = require("electron");
+const {app, BrowserWindow, net, dialog, Menu, ipcMain} = require("electron");
 const {exec} = require("child_process");
 const fs = require("fs");
 
-let win, server;
+let win, server, quitting, builtMenu;
 
-function createWindow() {
-    win = new BrowserWindow({width: 1024, height: 768});
+const menuTemplate = [
+    { label: "Edit", submenu: [
+	{ role: "undo" }, { role: "redo" }, { type: "separator" }, { role: "cut" },
+	{ role: "copy" }, { role: "paste" }, { role: "selectall" } ] },
+    { role: "window", submenu: [
+	{ role: "minimize" }, { role: "close" } ] },
+    { role: "help" } ];
+
+if (process.platform === "darwin") {
+    menuTemplate.unshift({
+	label: app.getName(), submenu: [
+	    { label: "About moviz", click() { execJS(true, "$('#info').click();"); } },
+	    { label: "Open graph", accelerator: "CmdOrCtrl+O",
+	      click() { execJS(false, "$('#load').click();"); } },
+	    { label: "Save graph", accelerator: "CmdOrCtrl+S",
+	      click() { execJS(false, "$('#save').click();"); } },
+	    { type: "separator" }, { role: "services", submenu: [] },
+	    { type: "separator" }, { role: "hide" }, { role: "hideothers" },
+	    { role: "unhide" }, { type: "separator" }, { role: "quit" } ] });
+    menuTemplate[3].submenu = [
+	{ label: "Close", accelerator: "CmdOrCtrl+W", role: "close" },
+	{ label: "Minimize", accelerator: "CmdOrCtrl+M", role: "minimize" },
+	{ label: "Zoom", role: "zoom" },
+	{ type: "separator" },
+	{ label: "Bring All to Front", role: "front" } ] };
+
+function execJS(create) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    var win = getWindow(create);
+    if (win)
+	win.webContents.executeJavaScript.apply(win.webContents, args);
+}
+
+function getWindow(create) {
+    if (win)
+	return win;
+
+    if (create === false)
+	return null;
+
+    win = new BrowserWindow({
+	width: 1024, height: 768, minWidth: 400, minHeight: 200,
+	titleBarStyle: "hidden-inset", show: false
+    });
+    global.win = win;
+    global.setProgressBar = win.setProgressBar.bind(win);
     win.loadURL("http://localhost:3000");
     win.on("closed", () => { win = null });
+    win.once("ready-to-show", () => {
+	win.show();
+    });
+
+    ipcMain.on("app-ready", () => {
+	execJS(false, "App.debug", false, function(debug) {
+	    if (debug && !builtMenu) {
+		menuTemplate.push({ label: "Debug", submenu: [
+		    { role: "reload" }, { role: "forcereload" }, { role: "toggledevtools" } ] });
+		Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate));
+		builtMenu = true;
+	    }
+	});
+    });
+    
+    return win;
 }
 
 app.on("ready", () => {
@@ -20,10 +80,14 @@ app.on("ready", () => {
     }
     
     server = exec("./moviz-server", function(error, stdout, stderr) {
-	dialog.showMessageBox({ message: stdout + stderr });
-	app.quit();
+	if (!quitting) {
+	    dialog.showMessageBox({ message: stdout + stderr });
+	    app.quit();
+	}
     });
-    createWindow();
+
+    Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate));
+    getWindow();
 });
 
 app.on("window-all-closed", () => {
@@ -32,10 +96,10 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", () => {
-    if (win === null)
-	createWindow();
+    getWindow();
 });
 
 app.on("quit", (e) => {
+    quitting = true;
     server.kill("SIGKILL");
 });

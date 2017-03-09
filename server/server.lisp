@@ -101,6 +101,7 @@
 				(:span :class "show" " or "
 				       (:a :href "#" :class "all" "show them all")) ".")))
 		(:div :id "sidebar"
+		      (:div :class "pad" "moviz")
 		      (:ul :id "menu"
 			   (:li :class "ui-widget-header" (:div "moviz"))
 			   (:li :id "collapse"

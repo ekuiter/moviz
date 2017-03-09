@@ -61,3 +61,23 @@ function makeMenuDialog(buttonSel, dialogSel, options, cb) {
 function defer(fn, ms) {
     return window.setTimeout(fn, ms || 0);
 }
+
+function withElectron() {
+    if (window.require)
+	return $.Deferred().resolve(window.require("electron")).promise();
+    else
+	return $.Deferred().reject().promise();
+}
+
+function withElectronGlobal(name) {
+    return withElectron().then(function(electron) {
+	return electron.remote.getGlobal(name);
+    });
+}
+
+function callElectronGlobal(name) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return withElectronGlobal(name).then(function(fn) {
+	return fn.apply(null, args);
+    });
+}

@@ -3,6 +3,12 @@ body {
     font-family: Helvetica;
     margin: 0;
     transition: opacity ease 150ms;
+    -webkit-app-region: drag;
+    -webkit-user-select: none;
+}
+
+button, .ui-widget, a {
+    -webkit-app-region: no-drag;
 }
 
 #wrapper {
@@ -37,19 +43,41 @@ body {
     left: 0;
     z-index: 10;
     overflow: scroll;
-    transition: all ease 150ms;
     background-color: rgba(220, 220, 220, 0.5);
 }
 
 #sidebar #menu {
     white-space: nowrap;
+}
+
+.visible #sidebar, .visible #sidebar #menu {
     transition: all ease 150ms;
 }
 
 #sidebar .ui-widget-header {
     padding: 0.2em;
     padding-left: 2em;
-    transition: all ease 150ms;
+}
+
+.electron #sidebar {
+    top: 35px;
+}
+
+.electron #sidebar .ui-widget-header, #sidebar .pad {
+    display: none;
+}
+
+.electron #sidebar .pad {
+    display: block;
+    width: 120px;
+    height: 25px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 11;
+    background-color: rgba(255, 255, 255, 0.5);
+    font-weight: bold;
+    padding: 10px 0 0 80px;
 }
 
 #sidebar.collapsed {

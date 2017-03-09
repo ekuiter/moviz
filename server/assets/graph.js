@@ -8,25 +8,42 @@ function Graph() {
 	App().server.saveGraph();
     });
 
-    makeMenuDialog("#load", "#load-dialog", { buttons: { "Load": load } }, function() {
+    makeMenuDialog("#load", "#load-dialog", { buttons: { "Load": loadFn(null) } }, function() {
 	$("#load-dialog input").val("");
     });
-    attachInputEvent($("#load-dialog input"), load);
+    attachInputEvent($("#load-dialog input"), loadFn(null));
     $("#load-dialog .progress").progressbar({ value: false });
 
-    function load() {
-	var input = $("#load-dialog input");
-	var progress = $("#load-dialog .progress");
-	if (input.val().trim()) {
-	    input.prop("disabled", true);
-	    progress.show();
-	    App().server.loadGraph(input.val()).always(function() {
-		input.prop("disabled", false);
-		progress.hide();
-	    }).done(function() {
-		$("#load-dialog").dialog("close");
-		App().nodeFilter.checkAllFilters();
-	    });
-	}
+    withElectron().then(function(electron) {
+	$("#load").unbind("click").click(function() {
+	    var fileNames = electron.remote.dialog.showOpenDialog(
+		electron.remote.getGlobal("win"), { properties: ["openFile"] });
+	    loadFn(fileNames)();
+	});
+    });
+
+    function loadFn(fileNames) {
+	return function() {
+	    var dialog = $("#load-dialog");
+	    var input = $("#load-dialog input");
+	    var progress = $("#load-dialog .progress");
+	    if (fileNames !== null)
+		input.val(fileNames || "");
+	    if (input.val().trim()) {
+		if (fileNames !== null)
+		    dialog.dialog("open");
+		input.prop("disabled", true);
+		progress.show();
+		App().server.loadGraph(input.val()).always(function() {
+		    input.prop("disabled", false);
+		    progress.hide();
+		    if (fileNames !== null)
+			dialog.dialog("close");
+		}).done(function() {
+		    dialog.dialog("close");
+		    App().nodeFilter.checkAllFilters();
+		});
+	    }
+	};
     }
 }

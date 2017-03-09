@@ -31,9 +31,11 @@ Progress.prototype = {
 		$("#progress-dialog .progress").progressbar("option", "value", data).
 		    children(".ui-progressbar-value").
 		    html(data.toFixed() + "%").css("display", "block");
+		callElectronGlobal("setProgressBar", data / 100);
 		self.queue(fn, 1000);
 	    } else {
 		$("#progress-dialog").dialog("close");
+		callElectronGlobal("setProgressBar", -1);
 		defer.resolve();
 	    }
 	});

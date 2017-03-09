@@ -44,9 +44,18 @@ var App = (function() {
 	});
 
 	function allInitialized() {
-	    defer(function() {
-		$("body").css("opacity", 1);
+	    withElectron().then(function(electron) {
+		$("body").addClass("electron");
+		electron.webFrame.setVisualZoomLevelLimits(1, 1);
+		electron.ipcRenderer.send("app-ready");
 	    });
+	    defer(function() {
+		$("body").addClass("visible");
+
+		defer(function() {
+		    $("body").css("opacity", 1);
+		}, 20);
+	    }, 20);
 	}
     }
 })();
@@ -56,5 +65,7 @@ App.prototype = {
 	$("#error-dialog").text(err).dialog("open");
     }
 };
+
+App.debug = false;
 
 $(document).ready(App);
