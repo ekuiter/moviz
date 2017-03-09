@@ -1,14 +1,64 @@
-## movie-graph
-
-Generates graphs like this:
+## moviz
 
 ![Graph Example](https://raw.githubusercontent.com/ekuiter/movie-graph/img/graph-example.png)
 
-### Getting started
+### Requirements
 
-Download ftp://ftp.fu-berlin.de/pub/misc/movies/database/ to the `imdb` directory
-(`actors.list` and `actresses.list` in particular).
-Run with `make run`, Clozure Common Lisp required. Then:
+- [Clozure Common Lisp](http://ccl.clozure.com/) (only compile-time, `brew install clozure-cl`)
+- libuv (`brew install libuv`)
+- the IMDb files (see below)
+- a [prebuilt binary](https://github.com/electron/electron/releases) of Electron
+
+### Getting started
+Just follow these steps: _(`repo/` refers to this repository's root folder.)_
+
+1. Download ftp://ftp.fu-berlin.de/pub/misc/movies/database/ to the `repo/server/imdb` directory
+(as of now, only `actors.list`, `actresses.list` and `movies.list` are required by the GUI).
+2. Copy `Electron.app` to `repo/moviz.app`.
+3. Run `make`.
+4. start moviz by double-clicking `repo/moviz.app`.
+
+#### Stand-alone bundle
+
+The `moviz.app` you just created is not stand-alone by default. It relies on files inside the `repo/server` directory. (This is useful for debugging. The app is also small in size because the IMDb files are not bundled within.)
+If you want to distribute an app bundle that can run on its own, run `make bundle` in step 3 instead. A directory will be opened - copy the required (see step 1) IMDb list files into it. Your bundle is ready to use at `repo/moviz-bundle.app`.
+
+### Server internals
+
+This is for the interested reader who wants to learn more about how moviz works.
+moviz consists of two parts: A Lisp server that provides all the "business logic" (searching IMDb files, creating & filtering graphs, generating SVG files, ...) and a JavaScript client responsible for the user interface. For convenience, both are bundled together in an [Electron](https://electron.atom.io/) app.
+Note however, that you can use these parts separately:
+
+- `make run-server` will start up a web server on `localhost:3000` accessible with your web browser of choice.
+- `make run-repl` will start a REPL in which you can directly use all functionality exposed by the server and more.
+
+#### The server
+
+The server accepts the following GET requests: (Almost all routes return JSON data.)
+- `/graph/nodes/` returns all graph nodes
+- `/graph/edges/` returns all graph edges
+- `/clear` clears the graph
+- `/add/MOVIE-1/MOVIE-2/...` adds MOVIES to the graph
+- `/abort/` aborts an add operation
+- `/progress/` returns progress of add operation
+- `/update/GRAPH-CLASS-1/GRAPH-CLASS-2/...` styles the graph according to GRAPH-CLASSES
+- `/filter/node/FILTER` filters graph nodes using FILTER (given as JSON)
+- `/filter/edge/FILTER` filters graph edges using FILTER (given as JSON)
+- `/search/LIST/ID` searches IMDb LIST for ID
+- `/inverse-search/LIST/RECORD` inverse searches IMDb LIST for RECORD
+- `/suggest/TITLE` suggests movies matching TITLE
+- `/eval/FORM` evaluates FORM (given as string) on the server
+- `/graph/save/` encodes the graph as a JSON file and downloads it
+- `/graph/load/FILE-NAME` decodes the graph from the JSON file given by FILE-NAME
+
+Some examples:
+- `http://localhost:3000/search/actors/Amell, Stephen`
+- `http://localhost:3000/inverse-search/actresses/Harry Potter and the Chamber of Secrets`
+- `http://localhost:3000/search/trivia/Supernatural`
+
+#### The REPL
+
+Here's an example on how to generate and save a graph image from inside the REPL:
 
 ```
 ? (in-package :app)
@@ -27,7 +77,7 @@ NIL
 
 To open the graph again, simply run `./my-graph`.
 
-### Other features
+##### Other features
 
 Search for all movies an actor played in:
 ```
@@ -66,10 +116,5 @@ Inverse searching imdb/actresses.list for one movie ...
 Testing ACTORS-LIST-DO-SEARCH ...
 8 of 8 tests passed.
 ```
-
-Run a server with `(server:serve)`, then visit these URLs to run the examples from above:
-- `http://localhost:3000/search/actors/Amell, Stephen`
-- `http://localhost:3000/inverse-search/actresses/Harry Potter and the Chamber of Secrets`
-- `http://localhost:3000/search/trivia/Supernatural`
 
 © Elias Kuiter 2017 - elias-kuiter.de

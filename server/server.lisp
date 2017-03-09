@@ -45,9 +45,12 @@
 				 `(:link :rel "stylesheet" :href
 					 ,(format nil "assets/~a.css" stylesheet)))
 			       stylesheets)
+		     (:script "if (typeof module === 'object')"
+			      "{ window.module = module; module = undefined; }")
 		     ,@(mapcar (lambda (script)
 				 `(:script :src ,(format nil "assets/~a.js" script)))
-			       scripts))
+			       scripts)
+		     (:script "if (window.module) module = window.module;"))
 	      (:body ,@body)))))
 
 (defun update-graph (&key (graph-classes *graph-classes*) (node-filter *node-filter*)
@@ -232,15 +235,21 @@
 (defroute (:* ".+" :priority -1) (req res)
   (send-response res :body "Page not found." :status 404))
 
-(defun serve (&optional (port 3000))
+(defun serve (&key (address "127.0.0.1") (port 3000) debug)  
   (update-graph)
   (handler-bind
       ((cl-async:streamish-closed (lambda (c)
 				    (declare (ignore c))
-				    (invoke-restart 'cl-async::continue-event-loop))))
+				    (invoke-restart 'cl-async::continue-event-loop)))
+       (cl-async:socket-address-in-use (lambda (c)
+					 (declare (ignore c))
+					 (format t "port ~a is not available" port)
+					 (return-from serve)))
+       (warning (lambda (c) (unless debug (muffle-warning c)))))
     (as:with-event-loop ()
-      (let* ((listener (make-instance 'listener :bind "127.0.0.1" :port port))
+      (let* ((listener (make-instance 'listener :bind address :port port))
 	     (server (start-server listener)))
+	(format t "Serving on ~a:~a ..." address port)
 	(as:signal-handler 2 (lambda (sig)
 			       (declare (ignore sig))
 			       (as:free-signal-handler 2)
