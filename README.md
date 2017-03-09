@@ -1,6 +1,6 @@
 ## moviz
 
-![Graph Example](https://raw.githubusercontent.com/ekuiter/movie-graph/img/graph-example.png)
+![moviz](https://raw.githubusercontent.com/ekuiter/moviz/img/graph-example.png)
 
 ### Requirements
 
@@ -16,7 +16,7 @@ Just follow these steps: _(`repo/` refers to this repository's root folder.)_
 (as of now, only `actors.list`, `actresses.list` and `movies.list` are required by the GUI).
 2. Copy `Electron.app` to `repo/moviz.app`.
 3. Run `make`.
-4. start moviz by double-clicking `repo/moviz.app`.
+4. Start moviz by double-clicking `repo/moviz.app`.
 
 #### Stand-alone bundle
 
