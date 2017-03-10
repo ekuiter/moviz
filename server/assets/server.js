@@ -79,5 +79,9 @@ Server.prototype = {
 
     saveGraph: function() {
 	document.location.href = "/graph/save/";
+    },
+
+    exportGraph: function() {
+	document.location.href = "/graph/export/";
     }
 };

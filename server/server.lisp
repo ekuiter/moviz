@@ -1,6 +1,7 @@
 (in-package :server)
 
 (defparameter +graph-path+ "assets/graph.svg")
+(defparameter +export-path+ "assets/graph.png")
 (defvar *graph-classes* nil)
 (defvar *node-filter* (graph:all-filter))
 (defvar *edge-filter* (graph:all-filter))
@@ -19,7 +20,7 @@
   (send-response res :headers '(:content-type "application/json")
 		 :body (json:encode-json-to-string json)))
 
-(defmacro defsearchroute (path function id-class-function)
+(defmacro def-search-route (path function id-class-function)
   `(defroute (:get ,(format nil "/~a/(.+)/(.+)" path)) (req res (list-string id-string))
      (let* ((list (imdb:make-list-instance list-string))
 	    (id-object (make-instance (,id-class-function list) :string id-string))
@@ -53,12 +54,16 @@
 		     (:script "if (window.module) module = window.module;"))
 	      (:body ,@body)))))
 
+(defun make-graph (graph-classes node-filter edge-filter)
+  (let* ((graph (eval `(app:make-graph (app:current-graph) ,@graph-classes)))
+	 (graph (graph:filter-nodes graph node-filter))
+	 (graph (graph:filter-edges graph edge-filter)))
+    graph))
+
 (defun update-graph (&key (graph-classes *graph-classes*) (node-filter *node-filter*)
 		       (edge-filter *edge-filter*) (body ""))
-  (let ((graph (eval `(app:make-graph (app:current-graph) ,@graph-classes))))
-    (setf graph (graph:filter-nodes graph node-filter)
-	  graph (graph:filter-edges graph edge-filter)
-	  *graph-classes* graph-classes *node-filter* node-filter *edge-filter* edge-filter)
+  (let ((graph (make-graph graph-classes node-filter edge-filter)))
+    (setf *graph-classes* graph-classes *node-filter* node-filter *edge-filter* edge-filter)
     (app:make-image graph +graph-path+ :format "svg"))
   body)
 
@@ -111,10 +116,12 @@
 				(:div (:span :class "ui-icon ui-icon-plusthick") "Add movies"))
 			   (:li :id "clear"
 				(:div (:span :class "ui-icon ui-icon-trash") "Clear graph"))
-			   (:li :id "save"
-				(:div (:span :class "ui-icon ui-icon-disk") "Save graph"))
 			   (:li :id "load"
 				(:div (:span :class "ui-icon ui-icon-document") "Load graph"))
+			   (:li :id "save"
+				(:div (:span :class "ui-icon ui-icon-disk") "Save graph"))
+			   (:li :id "export"
+				(:div (:span :class "ui-icon ui-icon-image") "Export image"))
 			   (:li :id "debug"
 				(:div (:span :class "ui-icon ui-icon-wrench") "Debug"))
 			   (:li :id "info"
@@ -205,8 +212,8 @@
 (def-filter-route "/filter/node/(.*)" :node-filter)
 (def-filter-route "/filter/edge/(.*)" :edge-filter)
 
-(defsearchroute "search" imdb:do-search imdb:id-class)
-(defsearchroute "inverse-search" imdb:inverse-search imdb:inverse-id-class)
+(def-search-route "search" imdb:do-search imdb:id-class)
+(def-search-route "inverse-search" imdb:inverse-search imdb:inverse-id-class)
 
 (defroute (:get "/suggest/(.+)") (req res (title))
   (let* ((results (imdb:suggest (imdb:make-list-instance 'movies) title)))
@@ -230,6 +237,31 @@
 	(error "not a valid graph file"))
       (app:restore-graph json)))
   nil)
+
+(defun send-file (response path file-name)
+  (let* ((headers (list
+		   :content-type (wookie-plugin-core-directory-router::get-mime path)
+		   :content-disposition (format nil "attachment; filename=~a" file-name)))
+	 (stream (start-response response :headers headers))
+	 (fstream (open path :element-type '(unsigned-byte 8)))
+	 (fsize (file-length fstream))
+	 (buffer (make-array (min fsize (* 1024 1024 8)) :element-type 'as:octet)))
+    (labels ((finish ()
+	       (close fstream)
+	       (finish-response response))
+	     (next ()
+	       (let ((n (read-sequence buffer fstream)))
+		 (if (zerop n)
+		     (finish)
+		     (progn
+		       (write-sequence buffer stream :start 0 :end n)
+		       (as:delay #'next))))))
+      (next))))
+
+(defroute (:get "/graph/export/") (req res)
+  (let ((graph (make-graph *graph-classes* *node-filter* *edge-filter*)))
+    (app:make-image graph +export-path+ :format "png"))
+  (send-file res +export-path+ (format nil "graph ~a.png" (date-string))))
 
 (def-directory-route "/assets" "./assets")
 

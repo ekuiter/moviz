@@ -10,20 +10,20 @@ const menuTemplate = [
 	{ role: "copy" }, { role: "paste" }, { role: "selectall" } ] },
     { role: "window", submenu: [
 	{ role: "minimize" }, { role: "close" } ] },
-    { role: "help" } ];
+    { role: "help", submenu: [] } ];
 
 if (process.platform === "darwin") {
     menuTemplate.unshift({
 	label: app.getName(), submenu: [
 	    { label: "About moviz", click() { execJS(true, "$('#info').click();"); } },
-	    { label: "Open graph", accelerator: "CmdOrCtrl+O",
+	    { label: "Load graph", accelerator: "CmdOrCtrl+O",
 	      click() { execJS(false, "$('#load').click();"); } },
 	    { label: "Save graph", accelerator: "CmdOrCtrl+S",
 	      click() { execJS(false, "$('#save').click();"); } },
 	    { type: "separator" }, { role: "services", submenu: [] },
 	    { type: "separator" }, { role: "hide" }, { role: "hideothers" },
 	    { role: "unhide" }, { type: "separator" }, { role: "quit" } ] });
-    menuTemplate[3].submenu = [
+    menuTemplate[2].submenu = [
 	{ label: "Close", accelerator: "CmdOrCtrl+W", role: "close" },
 	{ label: "Minimize", accelerator: "CmdOrCtrl+M", role: "minimize" },
 	{ label: "Zoom", role: "zoom" },

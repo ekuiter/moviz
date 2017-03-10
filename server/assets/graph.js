@@ -8,6 +8,10 @@ function Graph() {
 	App().server.saveGraph();
     });
 
+    $("#export").click(function() {
+	App().server.exportGraph();
+    });
+
     makeMenuDialog("#load", "#load-dialog", { buttons: { "Load": loadFn(null) } }, function() {
 	$("#load-dialog input").val("");
     });
