@@ -1,6 +1,9 @@
-## moviz
+## moviz for macOS
 
 ![moviz](https://raw.githubusercontent.com/ekuiter/moviz/img/graph-example.png)
+
+__New: Download the current moviz release [here](https://github.com/ekuiter/moviz/releases) - no compiling needed.__
+Or follow these instructions to build moviz yourself:
 
 ### Requirements
 

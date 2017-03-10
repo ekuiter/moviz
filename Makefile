@@ -5,12 +5,12 @@ CCL_EVAL = "(progn (load \"~/quicklisp/setup.lisp\") (load \"packages.lisp\") (s
 repl:
 	cd server; echo $(shell pwd); \
 	rm *.dx64fsl || true; \
-	echo "(ccl:save-application \"moviz-repl\" :prepend-kernel t)))" | ccl64 -e $(CCL_EVAL)
+	echo "(ccl:save-application \"moviz-repl\" :prepend-kernel t)" | ccl64 -e $(CCL_EVAL)
 
 server:
 	cd server; echo $(shell pwd); \
 	rm *.dx64fsl || true; \
-	echo "(ccl:save-application \"moviz-server\" :prepend-kernel t :toplevel-function #'server:serve)))" | ccl64 -e $(CCL_EVAL)
+	echo "(ccl:save-application \"moviz-server\" :prepend-kernel t :toplevel-function #'server:serve)" | ccl64 -e $(CCL_EVAL)
 
 client: server
 	if [ ! -d "moviz.app" ]; then echo "ERROR: Please provide a clean Electron.app as moviz.app!"; exit 1; fi
@@ -34,6 +34,8 @@ bundle: client
 	rm moviz-bundle.app/Contents/MacOS/imdb || true
 	cp server/moviz-server moviz-bundle.app/Contents/MacOS/moviz-server
 	cp -R server/assets moviz-bundle.app/Contents/MacOS/
+	rm moviz-bundle.app/Contents/MacOS/assets/graph.svg || true
+	rm moviz-bundle.app/Contents/MacOS/assets/graph.png || true
 	mkdir moviz-bundle.app/Contents/MacOS/imdb
 	echo "CAUTION: Remember to copy the IMDb files into this folder before using moviz!" > moviz-bundle.app/Contents/MacOS/imdb/README
 	open moviz-bundle.app/Contents/MacOS/imdb
