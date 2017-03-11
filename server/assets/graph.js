@@ -50,4 +50,24 @@ function Graph() {
 	    }
 	};
     }
+
+    $("#graph").on("load", function() {	
+	var panZoom = svgPanZoom("#graph", { fit: false, center: false });
+	try {
+	    panZoom.zoomBy(0.8);
+	    panZoom.panBy({ x: 100, y: 0 });
+	} catch (e) {}
+	$(window).resize(function() {
+	    panZoom.resize();
+	    panZoom.fit();
+	    panZoom.center();
+	    panZoom.zoomBy(0.8);
+	    panZoom.panBy({ x: 100, y: 0 });
+	});
+
+	var svgDoc = $("#graph")[0].contentDocument;
+	var linkElm = svgDoc.createElementNS("http://www.w3.org/1999/xhtml", "link");
+	$(svgDoc).find("svg").append($(linkElm).prop("href", "graph.css").
+				     prop("type", "text/css").prop("rel", "stylesheet"));
+    });
 }

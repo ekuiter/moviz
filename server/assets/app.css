@@ -7,7 +7,7 @@ body {
     -webkit-user-select: none;
 }
 
-button, .ui-widget, a {
+button, .ui-widget, a, #overlay {
     -webkit-app-region: no-drag;
 }
 
@@ -16,6 +16,11 @@ button, .ui-widget, a {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+}
+
+#graph {
+    width: 100vw;
+    height: 100vh;
 }
 
 #graph, #empty-graph, #empty-graph .show {
@@ -33,6 +38,15 @@ button, .ui-widget, a {
 
 #sidebar-pad {
     width: 200px;
+}
+
+#overlay {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 35px;
+    left: 0;
+    z-index: -10;
 }
 
 #sidebar {

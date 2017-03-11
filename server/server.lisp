@@ -35,13 +35,14 @@
 
 (defmacro make-html (&body body)
   (let ((stylesheets (list "jquery-ui.min" "app"))
-	(scripts (list "jquery.min" "jquery-ui.min" "helpers" "server" "filter"
-		       "node-filter" "edge-filter" "graph-classes" "sidebar"
+	(scripts (list "jquery.min" "jquery-ui.min" "svg-pan-zoom.min" "helpers" "server"
+		       "filter" "node-filter" "edge-filter" "graph-classes" "sidebar"
 		       "add-movies" "progress" "debug" "graph" "app")))
     `(with-html-string
        (:html (:head (:title "moviz")
 		     (:meta :charset "utf-8")
 		     (:meta :name "viewport" :content "width=device-width, initial-scale=1")
+		     (:link :rel "icon" :href "assets/favicon.ico")
 		     ,@(mapcar (lambda (stylesheet)
 				 `(:link :rel "stylesheet" :href
 					 ,(format nil "assets/~a.css" stylesheet)))
@@ -105,6 +106,7 @@
 			    (:p (:a :href "#" :class "add" "Add some movies")
 				(:span :class "show" " or "
 				       (:a :href "#" :class "all" "show them all")) ".")))
+		(:div :id "overlay")
 		(:div :id "sidebar"
 		      (:div :class "pad" "moviz")
 		      (:ul :id "menu"

@@ -67,6 +67,7 @@ NodeFilter.prototype.showGraph = function(nodes, invalidating) {
     if (!invalidating || !nodeExists) {
 	$("#graph")[nodeExists ? "show" : "hide"]();
 	$("#empty-graph")[nodeExists ? "hide" : "show"]();
+	$("#sidebar-pad")[nodeExists ? "hide" : "show"]();
     }
     if (invalidating)
 	$("#empty-graph .show")[nodeExists ? "show" : "hide"]();
