@@ -42,7 +42,7 @@
        (:html (:head (:title "moviz")
 		     (:meta :charset "utf-8")
 		     (:meta :name "viewport" :content "width=device-width, initial-scale=1")
-		     (:link :rel "icon" :href "assets/favicon.ico")
+		     (:link :rel "icon" :href "assets/images/favicon.ico")
 		     ,@(mapcar (lambda (stylesheet)
 				 `(:link :rel "stylesheet" :href
 					 ,(format nil "assets/~a.css" stylesheet)))

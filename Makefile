@@ -27,7 +27,7 @@ client: server
 all: client
 
 bundle: client
-	rm -r moviz-bundle.app
+	rm -r moviz-bundle.app || true
 	cp -R moviz.app moviz-bundle.app
 	rm moviz-bundle.app/Contents/MacOS/moviz-server || true
 	rm moviz-bundle.app/Contents/MacOS/assets || true
