@@ -28,7 +28,7 @@
 
 (defpackage :tmdb
   (:use :common-lisp :split-sequence)
-  (:export :do-search :data :poster-url :genres :plot))
+  (:export :do-search :data :poster-url :genres :plot :load-data))
 
 (defpackage :graph
   (:use :common-lisp)

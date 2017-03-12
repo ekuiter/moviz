@@ -1,5 +1,4 @@
 body {
-    opacity: 0;
     font-family: Helvetica;
     margin: 0;
     transition: opacity ease 150ms;
@@ -12,6 +11,7 @@ button, .ui-widget, a, #overlay {
 }
 
 #wrapper {
+    opacity: 0;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -50,6 +50,7 @@ button, .ui-widget, a, #overlay {
 }
 
 #sidebar {
+    opacity: 0;
     width: 200px;
     height: 100%;
     position: fixed;
@@ -161,7 +162,7 @@ a:link, a:visited {
     font-family: Consolas, Monaco, Lucida Console, Courier New, monospace;
 }
 
-#debug-dialog .progress, #load-dialog .progress {
+#debug-dialog .progress, #load-dialog .progress, #setup-dialog .progress {
     display: none;
     height: 20px;
 }

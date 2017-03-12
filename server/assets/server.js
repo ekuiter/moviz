@@ -4,6 +4,7 @@ function Server(initialized) {
 	return new Server(debug);
     
     this.invalidatables = [];
+    this.setup = this.callFn("setup");
     this.getNodes = this.thenFn(this.callFn("graph/nodes"), function(data) {
 	return self.cachedNodes = data;
     });
@@ -24,7 +25,19 @@ function Server(initialized) {
     this.suggest = this.callFn("suggest");
     this.eval = this.callFn("eval");
     this.loadGraph = this.invalidateFn(this.callFn("graph/load"));
-    this.update().then(initialized);
+
+    var setupFinished = false;
+    defer(function() {
+	if (!setupFinished)
+	    $("#setup-dialog").dialog("open");
+    }, 500);
+    this.setup().always(function() {
+	setupFinished = true;
+    }).then(function() {
+	$("#setup-dialog").dialog("close");
+    }).then(function() {
+	return self.update();
+    }).then(initialized);
 };
 
 Server.prototype = {

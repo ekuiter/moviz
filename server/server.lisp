@@ -17,7 +17,7 @@
      (destructuring-bind ,bind-args args ,@body)))
 
 (defun send-json-response (res json)
-  (send-response res :headers '(:content-type "application/json")
+  (send-response res :headers '(:content-type "application/json; charset=utf-8")
 		 :body (json:encode-json-to-string json)))
 
 (defmacro def-search-route (path function id-class-function)
@@ -38,7 +38,7 @@
 	(scripts (list "vendor/jquery.min" "vendor/jquery-ui.min" "vendor/svg-pan-zoom.min"
 		       "vendor/jquery.qtip.min" "helpers" "server" "filter" "node-filter"
 		       "edge-filter" "graph-classes" "sidebar" "add-movies" "progress"
-		       "debug" "graph" "app")))
+		       "debug" "graph" "graph-nodes" "graph-edges" "app")))
     `(with-html-string
        (:html (:head (:title "moviz")
 		     (:meta :charset "utf-8")
@@ -89,7 +89,8 @@
 
 (defun calculate-progress (progress-string)
   (let ((percent (parse-integer
-		  (first (last (cl-ppcre:all-matches-as-strings "\\d{2}|\\d" progress-string)))))
+		  (first (last (cl-ppcre:all-matches-as-strings
+				"\\d{3}|\\d{2}|\\d" progress-string)))))
 	(actresses (search "actresses" progress-string)))
     (+ (if actresses 50 0) (/ percent 2))))
 
@@ -142,7 +143,7 @@
 					   (:span :class "ui-icon ui-icon-circle-minus") " None"))
 			    (:div :class "filters"))
 		      (:p))
-		(:div :id "info-dialog" :title "moviz v1.1"
+		(:div :id "info-dialog" :title "moviz v1.2"
 		      (:p "moviz visualizes connections between movies using the IMDb.")
 		      (:p "Visit on GitHub: " (:a :href "https://github.com/ekuiter/moviz"
 						  :class "external" "ekuiter/moviz"))
@@ -171,8 +172,16 @@
 		      (:p :class "progress")
 		      (:p :class "results"))
 		(:div :id "progress-dialog" :title "Adding movies ..."
+		      (:p :class "progress"))
+		(:div :id "setup-dialog" :title "Setting up ..."
+		      (:p "Hold on, this only needs to be done once.")
 		      (:p :class "progress")))))
     (send-response res :headers '(:content-type "text/html; charset=utf-8") :body body)))
+
+(defroute (:get "/setup/") (req res)
+  (unless (tmdb:load-data)
+    (error "Setup failed. Make sure you are connected to the Internet."))
+  (send-response res :body ""))
 
 (defroute (:get "/graph/nodes/") (req res)
   (let ((app:*encoding-vertices* :summary))
@@ -233,7 +242,7 @@
   (send-json-response res (eval (read-from-string form))))
 
 (defroute (:get "/graph/save/") (req res)
-  (send-response res :headers (list :content-type "application/javascript"
+  (send-response res :headers (list :content-type "application/json; charset=utf-8"
 				    :content-disposition
 				    (format nil "attachment; filename=graph ~a.json"
 					    (date-string)))
@@ -292,7 +301,7 @@
     (as:with-event-loop ()
       (let* ((listener (make-instance 'listener :bind address :port port))
 	     (server (start-server listener)))
-	(format t "Serving on ~a:~a ..." address port)
+	(format t "Serving on ~a:~a ...~%" address port)
 	(as:signal-handler 2 (lambda (sig)
 			       (declare (ignore sig))
 			       (as:free-signal-handler 2)

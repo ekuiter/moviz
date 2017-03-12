@@ -9,26 +9,8 @@ var App = (function() {
 	self = this;
 	window.onerror = self.reportError;
 
-	var initialize = (function() {
-	    var initializing = [];
-
-	    return function(props) {
-		props.forEach(function(prop) {
-		    var klass = eval(prop.substr(0, 1).toUpperCase() + prop.substr(1));
-		    if (klass.length)
-			initializing.push(prop);
-		    self[prop] = new klass(function() {
-			initializing.splice(initializing.indexOf(prop), 1);
-			if (initializing.length === 0)
-			    allInitialized();
-		    });
-		});
-	    }
-	})();
-
-	initialize(["server", "nodeFilter", "edgeFilter", "graphClasses",
-		    "sidebar", "addMovies", "progress", "debug", "graph"]);
-	self.server.shouldInvalidate(self.nodeFilter);
+	makeDialog("#setup-dialog", { dialogClass: "no-close" });
+	$("#setup-dialog .progress").progressbar({ value: false }).show();
 
 	makeDialog("#error-dialog", {
 	    dialogClass: "no-close error-dialog",
@@ -43,7 +25,32 @@ var App = (function() {
 	    $("#node-filter .all").click();
 	});
 
-	function allInitialized() {
+	var initialize = (function() {
+	    var initializing = [];
+
+	    return function(props) {
+		var defer = $.Deferred();
+		if (!Array.isArray(props))
+		    props = [props];
+		props.forEach(function(prop) {
+		    var klass = eval(prop.substr(0, 1).toUpperCase() + prop.substr(1));
+		    if (klass.length)
+			initializing.push(prop);
+		    self[prop] = new klass(function() {
+			initializing.splice(initializing.indexOf(prop), 1);
+			if (initializing.length === 0)
+			    defer.resolve();
+		    });
+		});
+		return defer;
+	    }
+	})();
+
+	initialize("server").then(function() {
+	    return initialize(["nodeFilter", "edgeFilter", "graphClasses",
+			       "sidebar", "addMovies", "progress", "debug", "graph"]);
+	}).then(function() {
+	    self.server.shouldInvalidate(self.nodeFilter);
 	    withElectron().then(function(electron) {
 		$("body").addClass("electron");
 		$("a.external").click(function(e) {
@@ -57,10 +64,11 @@ var App = (function() {
 		$("body").addClass("visible");
 
 		defer(function() {
-		    $("body").css("opacity", 1);
+		    $("#wrapper").css("opacity", 1);
+		    $("#sidebar").css("opacity", 1);
 		}, 20);
 	    }, 20);
-	}
+	});
     }
 })();
 

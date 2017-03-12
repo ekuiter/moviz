@@ -6,10 +6,13 @@
 
 (defun fetch-json-response (url &optional params)
   (let ((json:*json-identifier-name-to-lisp* #'string-upcase))
-    (handler-case (json:decode-json (drakma:http-request url :want-stream t :parameters params))
+    (handler-case (json:decode-json-from-string
+		   (flexi-streams:octets-to-string
+		    (drakma:http-request url :parameters params) :external-format :utf-8))
       (error () nil))))
 
 (defun call-api (method &optional params)
+  (format t "Calling TMDb API method ~a~@[ and params ~a~]~%" method params)
   (setf params (acons :api_key +api-key+ params))
   (setf params (loop for (key . value) in params append
 		    (acons (format nil "~(~a~)" key) value nil)))
@@ -31,14 +34,32 @@
 	 finally (return new-alist-or-obj)))))
 
 (defun load-configuration ()
-  (setf *configuration* (or *configuration* (call-api "configuration"))))
+  (setf *configuration*
+	(or *configuration*
+	    (if (probe-file "tmdb-configuration.dat")
+		(with-open-file (stream "tmdb-configuration.dat") (read stream))
+		(let ((configuration (call-api "configuration")))
+		  (unless configuration (return-from load-configuration))
+		  (with-open-file (stream "tmdb-configuration.dat" :direction :output)
+		    (print configuration stream)))))))
 
 (defun load-genres ()
   (setf *genres*
 	(or *genres*
-	    (let ((movie-genres (value (call-api "genre/movie/list") :genres))
-		  (series-genres (value (call-api "genre/tv/list") :genres)))
-	      (union series-genres movie-genres :key (lambda (genre) (value genre :id)))))))
+	    (if (probe-file "tmdb-genres.dat")
+		(with-open-file (stream "tmdb-genres.dat") (read stream))
+		(let* ((movie-genres (value (call-api "genre/movie/list") :genres))
+		       (series-genres (value (call-api "genre/tv/list") :genres))
+		       (genres (union series-genres movie-genres
+				      :key (lambda (genre) (value genre :id)))))
+		  (unless genres (return-from load-genres))
+		  (with-open-file (stream "tmdb-genres.dat" :direction :output)
+		    (print genres stream)))))))
+
+(defun load-data ()
+  (load-configuration)
+  (load-genres)
+  (not (not (and *configuration* *genres*))))
 
 (defmethod data ((movie imdb:movie))
   (with-slots (imdb:tmdb-data) movie
@@ -51,8 +72,7 @@
 	   (params (acons :query (imdb:title movie) nil))
 	   (response (call-api method params))
 	   (results (value response :results)))
-      (when results
-	(setf imdb:tmdb-data (first results))))))
+      (setf imdb:tmdb-data (when results (first results))))))
 
 (defun image-url (path &optional (size "original"))
   (let* ((configuration (load-configuration)))

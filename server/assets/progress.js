@@ -10,9 +10,9 @@ function Progress() {
 
 Progress.prototype = {
     queue: function(fn, ms) {
-	window.setTimeout(function() {
+	defer(function() {
 	    App().server.progress().then(fn);
-	}, ms || 0);
+	}, ms);
     },
     
     report: function() {
@@ -28,9 +28,11 @@ Progress.prototype = {
 	self.queue(function fn(data) {
 	    if (data !== null) {
 		$("#progress-dialog").dialog("open");
-		$("#progress-dialog .progress").progressbar("option", "value", data).
+		$("#progress-dialog .progress").
+		    progressbar("option", "value", data !== 100 && data).
 		    children(".ui-progressbar-value").
-		    html(data.toFixed() + "%").css("display", "block");
+		    html(data === 100 ? "Crunching data ..." : data.toFixed() + "%").
+		    css("display", "block");
 		callElectronGlobal("setProgressBar", data / 100);
 		self.queue(fn, 1000);
 	    } else {

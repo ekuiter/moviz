@@ -222,7 +222,7 @@
 	     (format t "~2d% " (floor (* (loop for i across progress sum i) 100)
 				      (data-length actors-list))))
 	   (ccl:wait-on-semaphore progress-changed))
-      (format t "~&")
+      (format t "100%~&")
       (loop for process in processes do
 	   (let ((process-results (ccl:join-process process)))
 	     (loop for movie in movies do
