@@ -91,23 +91,35 @@ var zoomOrPanEvent = (function() {
 function GraphNodes() {
     svgDocument().find(".node").each(function() {
 	var self = this;
-	var text = $(this).children("text");
+	var textEl = $(this).children("text");
 	var movieTitle = $(this).children("text").text();
 	var movie = App().server.cachedNodes.find(function(node) {
 	    return node.title === movieTitle;
 	});
+	
+	var title = "";
+	title += movie.title;
+	title += (movie.year ? " (" + movie.year + ")" : "");
+	title += (movie.type ? " (" +
+		  (movie.type === "series" ? "TV series" : "Movie") + ")" : "");
+	var text = "";
+	if (movie.posterUrl)
+	    text += "<img src='" + movie.posterUrl + "' width='154' height='231'>";
+	if (movie.genres)
+	    text += "<p><b>" + movie.genres.join(", ") + "</b></p>";
+	text += "<p>" + movie.actors + " actors, " + movie.actresses + " actresses</p>";
+	if (movie.plot)
+	    text += "<p>" + movie.plot + "</p>";
+	
 	$(this).qtip({
-	    content: {
-		title: movieTitle,
-		text: movie.actors + " actors, " + movie.actresses + " actresses"
-	    },
-	    style: { classes: "qtip-shadow" },
+	    content: { title: title, text: text },
+	    style: { classes: "qtip-dark qtip-shadow node-tooltip" },
 	    position: { my: "top left", adjust: { y: 5 } },
 	    events: {
 		show: function(event, api) {
-		    var offset = text.offset();
-		    api.set("position.target", [offset.left + 2 * text.width() / 3,
-						offset.top + text.height()]);
+		    var offset = textEl.offset();
+		    api.set("position.target", [offset.left + 2 * textEl.width() / 3,
+						offset.top + textEl.height()]);
 		}
 	    }
 	});

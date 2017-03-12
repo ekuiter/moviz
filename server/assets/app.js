@@ -46,6 +46,10 @@ var App = (function() {
 	function allInitialized() {
 	    withElectron().then(function(electron) {
 		$("body").addClass("electron");
+		$("a.external").click(function(e) {
+		    e.preventDefault();
+		    electron.remote.shell.openExternal($(this).prop("href"));
+		});
 		electron.webFrame.setVisualZoomLevelLimits(1, 1);
 		electron.ipcRenderer.send("app-ready");
 	    });

@@ -95,8 +95,8 @@
 
 (defun date-string ()
   (multiple-value-bind (second minute hour date month year) (get-decoded-time)
-	   (declare (ignore second minute hour))
-	   (format nil "~4,'0d-~2,'0d-~2,'0d" year month date)))
+    (declare (ignore second minute hour))
+    (format nil "~4,'0d-~2,'0d-~2,'0d" year month date)))
 
 (defroute (:get "/") (req res)
   (let ((body (make-html
@@ -136,19 +136,25 @@
 		      (:p (:b "Movies"))
 		      (:div :id "node-filter"
 			    (:div :class "buttons"
-			     (:button :class "all"
-				      (:span :class "ui-icon ui-icon-circle-plus") " All")
-			     (:button :class "none"
-				      (:span :class "ui-icon ui-icon-circle-minus") " None"))
+				  (:button :class "all"
+					   (:span :class "ui-icon ui-icon-circle-plus") " All")
+				  (:button :class "none"
+					   (:span :class "ui-icon ui-icon-circle-minus") " None"))
 			    (:div :class "filters"))
 		      (:p))
-		(:div :id "info-dialog" :title "moviz"
+		(:div :id "info-dialog" :title "moviz v1.1"
 		      (:p "moviz visualizes connections between movies using the IMDb.")
 		      (:p "Visit on GitHub: " (:a :href "https://github.com/ekuiter/moviz"
-						  "ekuiter/moviz"))
-		      (:p "Information courtesy of IMDb ("
-			  (:a :href "http://www.imdb.com" "imdb.com")
-			  "). Used with permission."))
+						  :class "external" "ekuiter/moviz"))
+		      (:div
+		       (:img :src "assets/images/imdb.png" :width 40)
+		       (:p "Information courtesy of "
+			   (:a :href "http://www.imdb.com" :class "external" "IMDb")
+			   ". Used with permission."))
+		      (:div
+		       (:img :src "assets/images/tmdb.svg" :width 40)
+		       (:p "This product uses the TMDb API but is not endorsed or certified by "
+			   (:a :href "http://www.themoviedb.org" :class "external" "TMDb") ".")))
 		(:div :id "error-dialog" :title "Error")
 		(:div :id "add-dialog" :title "Add movies"
 		      (:p "Enter some movie titles:")

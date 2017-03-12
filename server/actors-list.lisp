@@ -80,17 +80,18 @@
 
 (defun line-to-parts (line)
   "Extracts a role's parts from an actor file line."
-  (cl-ppcre:register-groups-bind (title voice name billing)
-      ("\"?(.*?)\"? \\([\\d?]{4}(?:.*(\\(voice\\))|(?:.*\\[(.*?)\\])?(?:.*<(.*?)>)?)" line)
+  (cl-ppcre:register-groups-bind (title year voice name billing)
+      ("\"?(.*?)\"? \\(([\\d?]{4})(?:.*(\\(voice\\))|(?:.*\\[(.*?)\\])?(?:.*<(.*?)>)?)" line)
     (when voice
       (error 'bad-line-error))
-    (values title name billing)))
+    (values title name billing (when year (parse-integer year :junk-allowed t))
+	    (if (and (> (length line) 0) (char= (elt line 0) #\")) :series :movie))))
 
 (defmethod initialize-instance :after ((role role) &key line)
   "Initializes a role."
   (when line
-    (multiple-value-bind (title name billing) (line-to-parts line)
-      (setf (slot-value role 'movie) (make-instance 'movie :title title)
+    (multiple-value-bind (title name billing year type) (line-to-parts line)
+      (setf (slot-value role 'movie) (make-instance 'movie :title title :type type :year year)
 	    (slot-value role 'name) name
 	    (slot-value role 'billing) (when billing (parse-integer billing)))))
   (unless (movie role)

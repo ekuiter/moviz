@@ -17,6 +17,9 @@
 	   :initform nil
 	   :reader gender)))
 
+(defclass json-movie-node ()
+  ((movie-node :initarg :movie-node)))
+
 (defvar *graph* (make-instance 'movie-graph))
 (defvar *encoding-vertices* nil)
 (defvar *decoded-vertices* nil)
@@ -36,9 +39,6 @@
 						  :hash-table (slot-value graph 'edges))
 			    stream))))
 
-(defclass json-movie-node ()
-  ((movie-node :initarg :movie-node)))
-
 (defmethod json:make-object (bindings (class (eql 'json-movie-node)) &optional superclasses)
   (declare (ignore superclasses))
   (if (> (length bindings) 1)
@@ -55,7 +55,12 @@
 	((eql *encoding-vertices* :summary)
 	 (json:encode-object-member :title (title movie-node) stream)
 	 (json:encode-object-member :actors (length (actors movie-node)) stream)
-	 (json:encode-object-member :actresses (length (actresses movie-node)) stream))
+	 (json:encode-object-member :actresses (length (actresses movie-node)) stream)
+	 (json:encode-object-member :type (type movie-node) stream)
+	 (json:encode-object-member :year (year movie-node) stream)
+	 (json:encode-object-member :poster-url (tmdb:poster-url movie-node "w154") stream)
+	 (json:encode-object-member :genres (tmdb:genres movie-node) stream)
+	 (json:encode-object-member :plot (tmdb:plot movie-node) stream))
 	(t (json:encode-object-member :title (title movie-node) stream))))
 
 (defun encode-graph ()
@@ -68,10 +73,10 @@
 (defmacro defgraphclass (class superclasses)
   `(progn (defclass ,class ,superclasses ())
 	  (defmethod initialize-instance :after ((graph ,class) &key parent-graph)
-	    (when parent-graph
-	      (with-slots (vertices edges) graph
-		(setf vertices (slot-value parent-graph 'vertices)
-		      edges (slot-value parent-graph 'edges)))))
+		     (when parent-graph
+		       (with-slots (vertices edges) graph
+			 (setf vertices (slot-value parent-graph 'vertices)
+			       edges (slot-value parent-graph 'edges)))))
 	  (defmethod ,(intern (concatenate 'string "MAKE-" (symbol-name class)) :app)
 	      ((parent-graph movie-graph))
 	    (make-instance ',class :parent-graph parent-graph))))
@@ -153,16 +158,23 @@
 
 (defun load-nodes (&rest nodes)
   (assert nodes)
-  (when (= (length nodes) 1)
-    (actors (first nodes)) (actresses (first nodes)) (return-from load-nodes))
-  (funcall #'actors nodes)
-  (funcall #'actresses nodes)
+  (if (= (length nodes) 1)
+      (progn (actors (first nodes)) (actresses (first nodes)))
+      (progn (funcall #'actors nodes) (funcall #'actresses nodes)))
   nil)
+
+(defmethod adjust-node-slot ((node movie-node) slot accessor)
+  (setf (slot-value node slot)
+	(cond ((actors node) (funcall accessor (movie (first (actors node)))))
+	      (t (funcall accessor (movie (first (actresses node))))))))
 
 (defmethod add-node :around ((graph movie-graph) (node-1 movie-node))
   (load-nodes node-1)
   (unless (or (actors node-1) (actresses node-1))
     (return-from add-node graph))
+  (adjust-node-slot node-1 'type #'type)
+  (adjust-node-slot node-1 'year #'year)
+  (tmdb:data node-1)
   (call-next-method)
   (labels ((add-edges (node-1 node-2 accessor gender)
 	     (loop for (role-1 role-2) in (intersect-movie-nodes accessor node-1 node-2) do
@@ -207,10 +219,10 @@
   (list :label (format nil "~{~a~^~%~}" (mapcar #'label edges))))
 
 (defgraph condensed-graph (detailed-graph)
-   (when (> (length edges) 10) (list :label (short-label edges))))
+  (when (> (length edges) 10) (list :label (short-label edges))))
 
 (defgraph weighted-graph (movie-graph)
- (let ((weight (float (* (/ (length edges) ; rough percentage of common actors
+  (let ((weight (float (* (/ (length edges) ; rough percentage of common actors
 			     (average (total-actors node-1) (total-actors node-2))) 100)))
 	(min-weight 0.2) (max-weight 15))
     (setf weight (min max-weight (max min-weight weight)))

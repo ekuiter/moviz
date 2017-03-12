@@ -6,7 +6,14 @@
   ((title :initarg :title
 	  :initarg :string
 	  :initform (error "Must supply title")
-	  :reader title)))
+	  :reader title)
+   (type :initarg :type
+	 :initform nil
+	 :reader type)
+   (year :initarg :year
+	 :initform nil
+	 :reader year)
+   tmdb-data))
 
 (defclass movie-record ()
   ((movie :initarg :movie

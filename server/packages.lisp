@@ -5,7 +5,8 @@
   (ql:quickload :cl-ppcre)
   (ql:quickload :wookie)
   (ql:quickload :cl-json)
-  (ql:quickload :cl-who))
+  (ql:quickload :cl-who)
+  (ql:quickload :drakma))
 
 (defpackage :json-helpers
   (:use :common-lisp :cl-json)
@@ -21,8 +22,13 @@
 	   :alternate-versions :episode :info :summary :summarize :summarize-all
 	   :goofs-list :goofs :trivia-list :trivia :crazy-credits :crazy-credits-list
 	   :soundtracks :soundtracks-list :quotes :quotes-list :record-class :id-class
-	   :inverse-id-class :movies-list :suggest :first-name :last-name :number)
+	   :inverse-id-class :movies-list :suggest :first-name :last-name :number
+	   :type :year :tmdb-data)
   (:shadow :file-length))
+
+(defpackage :tmdb
+  (:use :common-lisp :split-sequence)
+  (:export :do-search :data :poster-url :genres :plot))
 
 (defpackage :graph
   (:use :common-lisp)
@@ -50,6 +56,7 @@
 (load "notes-list")
 (load "actors-list")
 (load "movies-list")
+(load "tmdb")
 (load "graph")
 (load "app")
 (load "tests")
