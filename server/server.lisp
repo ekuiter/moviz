@@ -34,10 +34,11 @@
   `(with-html-output-to-string (s nil :prologue t) ,@body))
 
 (defmacro make-html (&body body)
-  (let ((stylesheets (list "jquery-ui.min" "app"))
-	(scripts (list "jquery.min" "jquery-ui.min" "svg-pan-zoom.min" "helpers" "server"
-		       "filter" "node-filter" "edge-filter" "graph-classes" "sidebar"
-		       "add-movies" "progress" "debug" "graph" "app")))
+  (let ((stylesheets (list "vendor/jquery-ui.min" "vendor/jquery.qtip.min" "app"))
+	(scripts (list "vendor/jquery.min" "vendor/jquery-ui.min" "vendor/svg-pan-zoom.min"
+		       "vendor/jquery.qtip.min" "helpers" "server" "filter" "node-filter"
+		       "edge-filter" "graph-classes" "sidebar" "add-movies" "progress"
+		       "debug" "graph" "app")))
     `(with-html-string
        (:html (:head (:title "moviz")
 		     (:meta :charset "utf-8")
@@ -168,7 +169,8 @@
     (send-response res :headers '(:content-type "text/html; charset=utf-8") :body body)))
 
 (defroute (:get "/graph/nodes/") (req res)
-  (send-json-response res (graph:vertices (app:current-graph))))
+  (let ((app:*encoding-vertices* :summary))
+    (send-json-response res (graph:vertices (app:current-graph)))))
 
 (defroute (:get "/graph/edges/") (req res)
   (send-json-response res (graph:edges (app:current-graph))))

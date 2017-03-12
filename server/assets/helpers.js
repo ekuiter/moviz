@@ -81,3 +81,7 @@ function callElectronGlobal(name) {
 	return fn.apply(null, args);
     });
 }
+
+function svgDocument() {
+    return $($("#graph")[0].contentDocument);
+}

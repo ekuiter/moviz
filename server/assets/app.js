@@ -62,6 +62,8 @@ var App = (function() {
 
 App.prototype = {
     reportError: function(err) {
+	if (err.indexOf("SVGMatrix") !== -1)
+	    return;
 	$("#error-dialog").text(err).dialog("open");
     }
 };

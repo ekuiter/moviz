@@ -34,7 +34,7 @@
 (defpackage :app
   (:use :common-lisp :imdb :graph)
   (:export :to-dot :make-image :show :current-graph :clear-graph :add-movies :save-and-quit
-	   :make-graph :encode-graph :restore-graph))
+	   :make-graph :encode-graph :restore-graph :*encoding-vertices*))
 
 (defpackage :tests
   (:use :common-lisp :imdb)

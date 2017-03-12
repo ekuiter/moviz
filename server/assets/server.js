@@ -1,9 +1,12 @@
 function Server(initialized) {
+    var self = this;
     if (!(this instanceof Server))
 	return new Server(debug);
     
     this.invalidatables = [];
-    this.getNodes = this.callFn("graph/nodes");
+    this.getNodes = this.thenFn(this.callFn("graph/nodes"), function(data) {
+	return self.cachedNodes = data;
+    });
     this.getEdges = this.callFn("graph/edges");
     this.clear = this.invalidateFn(this.callFn("clear"));
     this.add = this.invalidateFn(this.callFn("add"));
@@ -39,6 +42,12 @@ Server.prototype = {
 		return $.ajax(url).fail(function(xhr) {
 		    App().reportError(xhr.responseText);
 		});
+	};
+    },
+
+    thenFn: function(fn, cb) {
+	return function() {
+	    return fn.apply(this, arguments).then(cb);
 	};
     },
 

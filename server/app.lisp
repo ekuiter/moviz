@@ -29,7 +29,7 @@
 		     (with-slots (gender) role-edge
 		       (setf gender (intern (string-upcase gender) :keyword)))))
  (movie-graph :encode (nil graph
-			   (let ((*encoding-vertices* t))
+			   (let ((*encoding-vertices* :detailed))
 			     (json:encode-object-member :vertices (vertices graph) stream))
 			   (json:encode-object-member
 			    :edges (make-instance 'json-helpers:json-hash-table
@@ -49,10 +49,14 @@
       (find (cdr (assoc 'title bindings)) *decoded-vertices* :test #'equal :key #'title)))
 
 (json-helpers:encode-with-prototype
- movie-node (:lisp-class :json-movie-node :lisp-package :app) movie-node
- (if *encoding-vertices*
-     (json::map-slots (json:stream-object-member-encoder stream) movie-node)
-     (json:encode-object-member :title (title movie-node) stream)))
+    movie-node (:lisp-class :json-movie-node :lisp-package :app) movie-node
+  (cond ((eql *encoding-vertices* :detailed)
+	 (json::map-slots (json:stream-object-member-encoder stream) movie-node))
+	((eql *encoding-vertices* :summary)
+	 (json:encode-object-member :title (title movie-node) stream)
+	 (json:encode-object-member :actors (length (actors movie-node)) stream)
+	 (json:encode-object-member :actresses (length (actresses movie-node)) stream))
+	(t (json:encode-object-member :title (title movie-node) stream))))
 
 (defun encode-graph ()
   (json:encode-json-to-string *graph*))

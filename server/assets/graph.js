@@ -52,22 +52,68 @@ function Graph() {
     }
 
     $("#graph").on("load", function() {	
-	var panZoom = svgPanZoom("#graph", { fit: false, center: false });
-	try {
-	    panZoom.zoomBy(0.8);
-	    panZoom.panBy({ x: 100, y: 0 });
-	} catch (e) {}
+	var panZoom = svgPanZoom("#graph", { fit: false, center: false,
+					     onZoom: zoomOrPanEvent, onPan: zoomOrPanEvent }).
+	    zoomBy(0.8).panBy({ x: 100, y: 0 });
 	$(window).resize(function() {
-	    panZoom.resize();
-	    panZoom.fit();
-	    panZoom.center();
-	    panZoom.zoomBy(0.8);
-	    panZoom.panBy({ x: 100, y: 0 });
+	    panZoom.resize().fit().center().zoomBy(0.8).panBy({ x: 100, y: 0 });
 	});
 
-	var svgDoc = $("#graph")[0].contentDocument;
-	var linkElm = svgDoc.createElementNS("http://www.w3.org/1999/xhtml", "link");
-	$(svgDoc).find("svg").append($(linkElm).prop("href", "graph.css").
-				     prop("type", "text/css").prop("rel", "stylesheet"));
+	var link = svgDocument()[0].createElementNS("http://www.w3.org/1999/xhtml", "link");
+	svgDocument().find("svg").append($(link).prop("href", "graph.css").
+					 prop("type", "text/css").prop("rel", "stylesheet"));
+	new GraphNodes();
+	new GraphEdges();
+	svgDocument().find("title").remove();
     });
+}
+
+var zoomOrPanEvent = (function() {
+    var zoomingOrPanning = false;
+
+    return function() {
+	if (!zoomingOrPanning) {
+	    svgDocument().find(".node").each(function() {
+		$(this).qtip("hide");
+		$(this).qtip("disable");
+	    });
+	}
+	zoomingOrPanning = true;
+	defer(function() {
+	    zoomingOrPanning = false;
+	    svgDocument().find(".node").each(function() {
+		$(this).qtip("enable");
+	    });
+	}, 500);
+    };
+})();
+
+function GraphNodes() {
+    svgDocument().find(".node").each(function() {
+	var self = this;
+	var text = $(this).children("text");
+	var movieTitle = $(this).children("text").text();
+	var movie = App().server.cachedNodes.find(function(node) {
+	    return node.title === movieTitle;
+	});
+	$(this).qtip({
+	    content: {
+		title: movieTitle,
+		text: movie.actors + " actors, " + movie.actresses + " actresses"
+	    },
+	    style: { classes: "qtip-shadow" },
+	    position: { my: "top left", adjust: { y: 5 } },
+	    events: {
+		show: function(event, api) {
+		    var offset = text.offset();
+		    api.set("position.target", [offset.left + 2 * text.width() / 3,
+						offset.top + text.height()]);
+		}
+	    }
+	});
+    });
+}
+
+function GraphEdges() {
+    
 }
