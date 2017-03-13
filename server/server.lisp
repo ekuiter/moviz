@@ -188,7 +188,8 @@
     (send-json-response res (graph:vertices (app:current-graph)))))
 
 (defroute (:get "/graph/edges/") (req res)
-  (send-json-response res (graph:edges (app:current-graph))))
+  (let ((app:*encoding-edges* :readable))
+    (send-json-response res (graph:edges (app:current-graph)))))
 
 (defroute (:get "/tmdb/search/movies/(.+)") (req res (movie-title))
   (let* ((movie (app:find-movie movie-title (graph:vertices (app:current-graph))))

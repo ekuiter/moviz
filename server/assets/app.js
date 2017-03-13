@@ -50,7 +50,6 @@ var App = (function() {
 	    return initialize(["nodeFilter", "edgeFilter", "graphClasses",
 			       "sidebar", "addMovies", "progress", "debug", "graph"]);
 	}).then(function() {
-	    self.server.shouldInvalidate(self.nodeFilter);
 	    withElectron().then(function(electron) {
 		$("body").addClass("electron");
 		$("a.external").click(function(e) {

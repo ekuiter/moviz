@@ -77,8 +77,9 @@
 	(setf (gethash (imdb:title movie) *movies*) (when results (first results))))))
 
 (defun image-url (path &optional (size "original"))
-  (let* ((configuration (load-configuration)))
-    (format nil "~a~a~a" (value configuration :images.base-url) size path)))
+  (when path
+    (let* ((configuration (load-configuration)))
+      (format nil "~a~a~a" (value configuration :images.base-url) size path))))
 
 (defmethod poster-url ((movie imdb:movie) &optional (size "original"))
   (when (data movie)
@@ -94,11 +95,16 @@
   (when (data movie)
     (value (data movie) :overview)))
 
+(defun build-object (key value object)
+  (if value
+      (acons key value object)
+      object))
+
 (defmethod metadata ((movie imdb:movie) &optional (size "original"))
   (when (data movie)
-    (acons :poster-url (poster-url movie size)
-	   (acons :genres (genres movie)
-		  (acons :plot (plot movie) nil)))))
+    (build-object :poster-url (poster-url movie size)
+	   (build-object :genres (genres movie)
+		  (build-object :plot (plot movie) nil)))))
 
 (defmethod data ((actor imdb:actor))
   (if (multiple-value-bind (value present-p) (gethash (imdb:name actor) *actors*)
@@ -114,4 +120,4 @@
 
 (defmethod metadata ((actor imdb:actor) &optional (size "original"))
   (when (data actor)
-    (acons :profile-url (profile-url actor size) nil)))
+    (build-object :profile-url (profile-url actor size) nil)))

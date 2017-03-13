@@ -1,4 +1,8 @@
 function Graph() {
+    var self = this;
+    this.graphNodes = new GraphNodes();
+    this.graphEdges = new GraphEdges();
+    
     makeMenuDialog("#clear", "#clear-dialog", { buttons: { "Yes": function() {
 	App().server.clear();
 	$("#clear-dialog").dialog("close");
@@ -62,8 +66,8 @@ function Graph() {
 	var link = svgDocument()[0].createElementNS("http://www.w3.org/1999/xhtml", "link");
 	svgDocument().find("svg").append($(link).prop("href", "graph.css").
 					 prop("type", "text/css").prop("rel", "stylesheet"));
-	new GraphNodes();
-	new GraphEdges();
+	self.graphNodes.update();
+	self.graphEdges.update();
 	svgDocument().find("title").remove();
     });
 
@@ -72,7 +76,7 @@ function Graph() {
 
 	return function() {
 	    if (!zoomingOrPanning) {
-		svgDocument().find(".node").each(function() {
+		svgDocument().find(".node, #actors.edge text").each(function() {
 		    $(this).qtip("hide");
 		    $(this).qtip("disable");
 		});
@@ -80,10 +84,29 @@ function Graph() {
 	    zoomingOrPanning = true;
 	    defer(function() {
 		zoomingOrPanning = false;
-		svgDocument().find(".node").each(function() {
+		svgDocument().find(".node, #actors.edge text").each(function() {
 		    $(this).qtip("enable");
 		});
 	    }, 500);
 	};
     })();
 }
+
+Graph.prototype = {
+    adjustPositionFn: function(anchor, num, denom) {
+	num = num || 1;
+	denom = denom || 1;
+	return function(event, api) {
+	    var offset = anchor.offset();
+	    var x = offset.left + num * anchor.width() / denom;
+	    var y = offset.top + anchor.height();
+	    api.set("position.target", [x, y]);
+	    api.reposition();
+	    if (api.position.my.x === "right")
+		x = offset.left + (denom - num) * anchor.width() / denom;
+	    if (api.position.my.y === "bottom")
+		y = offset.top;
+	    api.set("position.target", [x, y]);
+	}
+    }
+};

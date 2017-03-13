@@ -21,13 +21,18 @@
   ((movie-node :initarg :movie-node)))
 
 (defvar *graph* (make-instance 'movie-graph))
+(defvar *encoding-edges* nil)
 (defvar *encoding-vertices* nil)
 (defvar *decoded-vertices* nil)
 (defvar *actors* (make-list-instance 'actors))
 (defvar *actresses* (make-list-instance 'actresses))
 
 (json-helpers:make-decodable
- movie actor role
+ movie role
+ (actor :encode (nil actor
+		     (json::map-slots (json:stream-object-member-encoder stream) actor)
+		     (when (eql *encoding-edges* :readable)
+		       (json:encode-object-member :readable-name (readable-name actor) stream))))
  (role-edge :decode (role-edge
 		     (with-slots (gender) role-edge
 		       (setf gender (intern (string-upcase gender) :keyword)))))
@@ -214,26 +219,28 @@
   nil)
 
 (defgraph unlabeled-graph (movie-graph)
-  (list :label ""))
+  (list :label "" :id "\"noActors\""))
 
 (defgraph detailed-graph (movie-graph)
-  (list :label (format nil "~{~a~^~%~}" (mapcar #'label edges))))
+  (list :label (format nil "~{~a~^~%~}" (mapcar #'label edges)) :id "\"actors\""))
 
 (defgraph condensed-graph (detailed-graph)
-  (when (> (length edges) 10) (list :label (short-label edges))))
+  (when (> (length edges) 10) (list :label (short-label edges) :id "\"noActors\"")))
 
 (defgraph weighted-graph (movie-graph)
   (let ((weight (float (* (/ (length edges) ; rough percentage of common actors
-			     (average (total-actors node-1) (total-actors node-2))) 100)))
+			     (average (total-actors node-1) (total-actors node-2)))
+			  100)))
 	(min-weight 0.2) (max-weight 15))
     (setf weight (min max-weight (max min-weight weight)))
     (list :label (write-to-string (length edges)) :color "\"#555555\""
-	  :weight weight :penwidth weight)))
+	  :weight weight :penwidth weight :id "\"noActors\"")))
 
 (defgraph top-actors-graph (detailed-graph)
   (list :label (format nil "~{~a~^~%~}"
 		       (loop for edge in edges repeat 5	while (<= (role-edge-score edge) 15)
-			  collect (label edge)))))
+			  collect (label edge)))
+	:id "\"actors\""))
 
 (deffilter movie ((movie movie)) node
   (movie= movie node))

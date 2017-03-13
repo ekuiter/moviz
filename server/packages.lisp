@@ -40,7 +40,8 @@
 (defpackage :app
   (:use :common-lisp :imdb :graph)
   (:export :to-dot :make-image :show :current-graph :clear-graph :add-movies :save-and-quit
-	   :make-graph :encode-graph :restore-graph :*encoding-vertices* :find-movie))
+	   :make-graph :encode-graph :restore-graph :*encoding-vertices* :*encoding-edges*
+	   :find-movie))
 
 (defpackage :tests
   (:use :common-lisp :imdb)

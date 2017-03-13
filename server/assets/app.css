@@ -175,19 +175,48 @@ a:link, a:visited {
     transition: width ease 1s;
 }
 
-.node-tooltip {
+.tooltip {
     min-width: 450px;
     line-height: 1.5em;
     font-size: 12px;
 }
 
-.node-tooltip .qtip-titlebar {
+.tooltip .ui-icon {
+    margin: -3px 5px 0 -20px;
+    background-image: url(vendor/images/ui-icons_ffba3b_256x240.png);
+}
+
+.tooltip .qtip-titlebar {
     font-size: 14px;
 }
 
-.node-tooltip img {
+.tooltip img, .tooltip .image {
     float: left;
     margin: 5px 8px 5px 0;
+    width: 154px;
+    height: 231px;
+}
+
+.tooltip .image p {
+    margin: 4px;
+}
+
+.tooltip .image .loading {
+    margin-top: 80px;
+}
+
+.edge-tooltip b {
+    display: block;
+    font-size: 15px;
+    padding: 5px 0 5px 175px;
+}
+
+.edge-tooltip hr {
+    border-top: solid 1px #616161;
+    border-bottom: 0;
+    border-left: 0;
+    border-right: 0;
+    margin: 15px 0;
 }
 
 .loading {

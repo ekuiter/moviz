@@ -4,25 +4,16 @@ function Server(initialized) {
 	return new Server(debug);
     
     this.invalidatables = [];
+    this.destructiveInvalidatables = [];
     this.setup = this.callFn("setup");
-    this.getNodes = this.thenFn(this.callFn("graph/nodes"), function(data) {
-	asList(data).forEach(function(node) {
-	    var metadata = false;
-	    node.getMetadata = function() {
-		if (metadata === false)
-		    return self.tmdbSearch("movies", node.title).then(function(data) {
-			return metadata = asObject(data);
-		    });
-		else
-		    return instantPromise(metadata);
-	    };
-	});
-	return self.cachedNodes = asList(data);
+    this.getNodes = this.getFn("graph/nodes", "movies", "cachedNodes",
+			       function(node) { return node.title; });
+    this.getEdges = this.getFn("graph/edges", "actors", "cachedEdges", function(edge) {
+	return edge.role1.actor.lastName + ", " + edge.role1.actor.firstName;
     });
-    this.getEdges = this.callFn("graph/edges");
     this.tmdbSearch = this.callFn("tmdb/search");
-    this.clear = this.invalidateFn(this.callFn("clear"));
-    this.add = this.invalidateFn(this.callFn("add"));
+    this.clear = this.destructiveFn(this.callFn("clear"));
+    this.add = this.destructiveFn(this.callFn("add"));
     this.progress = this.callFn("progress");
     this.abort = this.callFn("abort");
     this.update = this.invalidateFn(this.callFn("update", ["unlabeled", "detailed", "condensed",
@@ -36,7 +27,7 @@ function Server(initialized) {
     this.inverseSearch = this.callFn("inverse-search");
     this.suggest = this.callFn("suggest");
     this.eval = this.callFn("eval");
-    this.loadGraph = this.invalidateFn(this.callFn("graph/load"));
+    this.loadGraph = this.destructiveFn(this.callFn("graph/load"));
 
     var setupFinished = false;
     defer(function() {
@@ -102,6 +93,17 @@ Server.prototype = {
 	};
     },
 
+    destructiveFn: function(fn) {
+	var self = this;
+	return function() {
+	    return self.invalidateFn(fn).apply(this, arguments).then(function() {
+		self.destructiveInvalidatables.forEach(function(obj) {
+		    obj.invalidate();
+		});
+	    });
+	};
+    },
+
     invalidate: function(fn) {
 	fn = fn || instantPromise;
 	return this.invalidateFn(fn)(Array.prototype.slice.call(arguments, 1));
@@ -111,11 +113,33 @@ Server.prototype = {
 	this.invalidatables.push(obj);
     },
 
+    shouldInvalidateOnDestruction: function(obj) {
+	this.destructiveInvalidatables.push(obj);
+    },
+
     saveGraph: function() {
 	document.location.href = "/graph/save/";
     },
 
     exportGraph: function() {
 	document.location.href = "/graph/export/";
+    },
+
+    getFn: function(fn, tmdbFn, cacheProp, idFn) {
+	var self = this;
+	return this.thenFn(this.callFn(fn), function(data) {
+	    asList(data).forEach(function(datum) {
+		var metadata = false;
+		datum.getMetadata = function() {
+		    if (metadata === false)
+			return self.tmdbSearch(tmdbFn, idFn(datum)).then(function(data) {
+			    return metadata = asObject(data);
+			});
+		    else
+			return instantPromise(metadata);
+		};
+	    });
+	    return self[cacheProp] = asList(data);
+	});
     }
 };

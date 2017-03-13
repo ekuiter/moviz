@@ -16,6 +16,7 @@ function NodeFilter(initialized) {
 	self.update();
     });
 
+    App().server.shouldInvalidate(this);
     self.checkAllFilters().then(initialized);
 };
 
