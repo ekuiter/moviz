@@ -179,7 +179,7 @@
     (send-response res :headers '(:content-type "text/html; charset=utf-8") :body body)))
 
 (defroute (:get "/setup/") (req res)
-  (unless (tmdb:load-data)
+  (unless (tmdb:setup)
     (error "Setup failed. Make sure you are connected to the Internet."))
   (send-response res :body ""))
 
@@ -189,6 +189,15 @@
 
 (defroute (:get "/graph/edges/") (req res)
   (send-json-response res (graph:edges (app:current-graph))))
+
+(defroute (:get "/tmdb/search/movies/(.+)") (req res (movie-title))
+  (let* ((movie (app:find-movie movie-title (graph:vertices (app:current-graph))))
+	 (metadata (when movie (tmdb:metadata movie))))
+    (send-json-response res metadata)))
+
+(defroute (:get "/tmdb/search/actors/(.+)") (req res (actor-name))
+  (let ((metadata (tmdb:metadata (make-instance 'imdb:actor :name actor-name) "w185")))
+    (send-json-response res metadata)))
 
 (def-destructive-graph-route (:get "/clear/") (req res)
   (app:clear-graph)

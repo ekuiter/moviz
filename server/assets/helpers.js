@@ -33,12 +33,16 @@ function attachInputEvent(obj, cb) {
     });
 }
 
-function instantPromise() {
-    return $.Deferred().resolve().promise();
+function instantPromise(arg) {
+    return $.Deferred().resolve(arg).promise();
 }
 
 function asList(obj) {
     return obj === null ? [] : obj;
+}
+
+function asObject(obj) {
+    return obj === null ? {} : obj;
 }
 
 function makeDialog(sel, options) {

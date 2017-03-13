@@ -23,12 +23,12 @@
 	   :goofs-list :goofs :trivia-list :trivia :crazy-credits :crazy-credits-list
 	   :soundtracks :soundtracks-list :quotes :quotes-list :record-class :id-class
 	   :inverse-id-class :movies-list :suggest :first-name :last-name :number
-	   :type :year :tmdb-data)
+	   :type :year)
   (:shadow :file-length))
 
 (defpackage :tmdb
   (:use :common-lisp :split-sequence)
-  (:export :do-search :data :poster-url :genres :plot :load-data))
+  (:export :metadata :poster-url :genres :plot :setup :profile-url))
 
 (defpackage :graph
   (:use :common-lisp)
@@ -40,7 +40,7 @@
 (defpackage :app
   (:use :common-lisp :imdb :graph)
   (:export :to-dot :make-image :show :current-graph :clear-graph :add-movies :save-and-quit
-	   :make-graph :encode-graph :restore-graph :*encoding-vertices*))
+	   :make-graph :encode-graph :restore-graph :*encoding-vertices* :find-movie))
 
 (defpackage :tests
   (:use :common-lisp :imdb)

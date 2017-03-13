@@ -3,6 +3,8 @@
 (defparameter +api-key+ "f195f3a48ebe70b0d00e57fd5add98a2")
 (defvar *configuration* nil)
 (defvar *genres* nil)
+(defvar *movies* (make-hash-table :test 'equal))
+(defvar *actors* (make-hash-table :test 'equal))
 
 (defun fetch-json-response (url &optional params)
   (let ((json:*json-identifier-name-to-lisp* #'string-upcase))
@@ -56,23 +58,23 @@
 		  (with-open-file (stream "tmdb-genres.dat" :direction :output)
 		    (print genres stream)))))))
 
-(defun load-data ()
+(defun setup ()
   (load-configuration)
   (load-genres)
   (not (not (and *configuration* *genres*))))
 
 (defmethod data ((movie imdb:movie))
-  (with-slots (imdb:tmdb-data) movie
-    (when (slot-boundp movie 'imdb:tmdb-data)
-      (return-from data imdb:tmdb-data))
-    (let* ((method (format nil "search/~a"
-			   (cond ((eql (imdb:type movie) :movie) "movie")
-				 ((eql (imdb:type movie) :series) "tv")
-				 (t (error "the given movie has no type")))))
-	   (params (acons :query (imdb:title movie) nil))
-	   (response (call-api method params))
-	   (results (value response :results)))
-      (setf imdb:tmdb-data (when results (first results))))))
+  (if (multiple-value-bind (value present-p) (gethash (imdb:title movie) *movies*)
+	(declare (ignore value)) present-p)
+      (gethash (imdb:title movie) *movies*)
+      (let* ((method (format nil "search/~a"
+			     (cond ((eql (imdb:type movie) :movie) "movie")
+				   ((eql (imdb:type movie) :series) "tv")
+				   (t (error "the given movie has no type")))))
+	     (params (acons :query (imdb:title movie) nil))
+	     (response (call-api method params))
+	     (results (value response :results)))
+	(setf (gethash (imdb:title movie) *movies*) (when results (first results))))))
 
 (defun image-url (path &optional (size "original"))
   (let* ((configuration (load-configuration)))
@@ -91,3 +93,25 @@
 (defmethod plot ((movie imdb:movie))
   (when (data movie)
     (value (data movie) :overview)))
+
+(defmethod metadata ((movie imdb:movie) &optional (size "original"))
+  (when (data movie)
+    (acons :poster-url (poster-url movie size)
+	   (acons :genres (genres movie)
+		  (acons :plot (plot movie) nil)))))
+
+(defmethod data ((actor imdb:actor))
+  (if (multiple-value-bind (value present-p) (gethash (imdb:name actor) *actors*)
+	(declare (ignore value)) present-p)
+      (gethash (imdb:name actor) *actors*)
+      (let ((results (value (call-api "search/person"
+				      (acons :query (imdb:readable-name actor) nil)) :results)))
+	(setf (gethash (imdb:name actor) *actors*) (when results (first results))))))
+
+(defmethod profile-url ((actor imdb:actor) &optional (size "original"))
+  (when (data actor)
+    (image-url (value (data actor) :profile-path) size)))
+
+(defmethod metadata ((actor imdb:actor) &optional (size "original"))
+  (when (data actor)
+    (acons :profile-url (profile-url actor size) nil)))

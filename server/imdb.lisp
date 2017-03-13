@@ -12,8 +12,7 @@
 	 :reader type)
    (year :initarg :year
 	 :initform nil
-	 :reader year)
-   tmdb-data))
+	 :reader year)))
 
 (defclass movie-record ()
   ((movie :initarg :movie

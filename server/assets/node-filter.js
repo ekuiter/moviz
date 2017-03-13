@@ -26,7 +26,7 @@ NodeFilter.prototype.getNodes = function() {
     var self = this;
     return App().server.getNodes().then(function(data) {
 	self.allNodes = [];
-	asList(data).forEach(function(node) {
+	data.forEach(function(node) {
 	    self.allNodes.push(node.title);
 	});
 	return self.allNodes;

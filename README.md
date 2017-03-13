@@ -2,7 +2,7 @@
 
 ![moviz](https://raw.githubusercontent.com/ekuiter/moviz/img/graph-example.png)
 
-__Download the current moviz release [here](https://github.com/ekuiter/moviz/releases) - no compiling needed.__
+__Download the current moviz release [here](https://github.com/ekuiter/moviz/releases/latest) - no compiling needed.__
 
 Or follow these instructions to build moviz yourself:
 

@@ -4,6 +4,7 @@ body {
     transition: opacity ease 150ms;
     -webkit-app-region: drag;
     -webkit-user-select: none;
+    background: url(images/loading.svg) no-repeat -9999px -9999px;
 }
 
 button, .ui-widget, a, #overlay {
@@ -175,7 +176,7 @@ a:link, a:visited {
 }
 
 .node-tooltip {
-    min-width: 500px;
+    min-width: 450px;
     line-height: 1.5em;
     font-size: 12px;
 }
@@ -187,4 +188,11 @@ a:link, a:visited {
 .node-tooltip img {
     float: left;
     margin: 5px 8px 5px 0;
+}
+
+.loading {
+    margin: 10px auto;
+    padding: 24px;
+    width: 0;
+    background-image: url(images/loading.svg);
 }

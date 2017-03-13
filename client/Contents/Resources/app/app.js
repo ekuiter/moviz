@@ -86,8 +86,10 @@ app.on("ready", () => {
 	}
     });
 
-    Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate));
-    getWindow();
+    setTimeout(function() {
+	Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate));
+	getWindow();
+    }, 100);
 });
 
 app.on("window-all-closed", () => {

@@ -7,21 +7,34 @@ function GraphNodes() {
 	    return node.title === movieTitle;
 	});
 	
-	var title = "";
-	title += movie.title;
-	title += (movie.year ? " (" + movie.year + ")" : "");
-	title += (movie.type ? " (" +
-		  (movie.type === "series" ? "TV series" : "Movie") + ")" : "");
-	var text = "";
-	if (movie.posterUrl)
-	    text += "<img src='" + movie.posterUrl + "' width='154' height='231'>";
-	if (movie.genres)
-	    text += "<p><b>" + movie.genres.join(", ") + "</b></p>";
-	if (movie.plot)
-	    text += "<p>" + movie.plot + "</p>";
-	
 	$(this).qtip({
-	    content: { title: title, text: text },
+	    content: {
+		title: function(event, api) {
+		    var title = "";
+		    title += movie.title;
+		    title += (movie.year ? " (" + movie.year + ")" : "");
+		    title += (movie.type ? " (" +
+			      (movie.type === "series" ? "TV series" : "Movie") + ")" : "");
+		    return title;
+		},
+		text: function(event, api) {
+		    movie.getMetadata().then(function(metadata) {
+			var text = "";
+			if (metadata.posterUrl)
+			    text += "<img src='" + metadata.posterUrl +
+			    "' width='154' height='231'>";
+			if (metadata.genres)
+			    text += "<p><b>" + metadata.genres.join(", ") + "</b></p>";
+			if (metadata.plot)
+			    text += "<p>" + metadata.plot + "</p>";
+			if (text === "")
+			    text += "<p>No information found.</p>" +
+			    "<p>Check your Internet connection, then restart moviz.</p>";
+			api.set("content.text", text);
+		    });
+		    return "<div class='loading'></div>";
+		}
+	    },
 	    style: { classes: "qtip-dark qtip-shadow node-tooltip" },
 	    position: { my: "top left", adjust: { y: 5 }, viewport: true },
 	    events: {

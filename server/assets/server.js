@@ -6,9 +6,21 @@ function Server(initialized) {
     this.invalidatables = [];
     this.setup = this.callFn("setup");
     this.getNodes = this.thenFn(this.callFn("graph/nodes"), function(data) {
-	return self.cachedNodes = data;
+	asList(data).forEach(function(node) {
+	    var metadata = false;
+	    node.getMetadata = function() {
+		if (metadata === false)
+		    return self.tmdbSearch("movies", node.title).then(function(data) {
+			return metadata = asObject(data);
+		    });
+		else
+		    return instantPromise(metadata);
+	    };
+	});
+	return self.cachedNodes = asList(data);
     });
     this.getEdges = this.callFn("graph/edges");
+    this.tmdbSearch = this.callFn("tmdb/search");
     this.clear = this.invalidateFn(this.callFn("clear"));
     this.add = this.invalidateFn(this.callFn("add"));
     this.progress = this.callFn("progress");

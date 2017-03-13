@@ -39,14 +39,19 @@
 						  :hash-table (slot-value graph 'edges))
 			    stream))))
 
+(defun find-movie (movie-title movies)
+  (find movie-title movies :test #'equal :key #'title))
+
 (defmethod json:make-object (bindings (class (eql 'json-movie-node)) &optional superclasses)
   (declare (ignore superclasses))
   (if (> (length bindings) 1)
       (let ((movie-node (json-helpers:allocate-and-populate-instance
 			 (find-class 'movie-node) bindings)))
+	(with-slots (type) movie-node
+	  (setf type (intern (string-upcase type) :keyword)))
 	(push movie-node *decoded-vertices*)
 	movie-node)
-      (find (cdr (assoc 'title bindings)) *decoded-vertices* :test #'equal :key #'title)))
+      (find-movie (cdr (assoc 'title bindings)) *decoded-vertices*)))
 
 (json-helpers:encode-with-prototype
     movie-node (:lisp-class :json-movie-node :lisp-package :app) movie-node
@@ -57,10 +62,7 @@
 	 (json:encode-object-member :actors (length (actors movie-node)) stream)
 	 (json:encode-object-member :actresses (length (actresses movie-node)) stream)
 	 (json:encode-object-member :type (type movie-node) stream)
-	 (json:encode-object-member :year (year movie-node) stream)
-	 (json:encode-object-member :poster-url (tmdb:poster-url movie-node "w154") stream)
-	 (json:encode-object-member :genres (tmdb:genres movie-node) stream)
-	 (json:encode-object-member :plot (tmdb:plot movie-node) stream))
+	 (json:encode-object-member :year (year movie-node) stream))
 	(t (json:encode-object-member :title (title movie-node) stream))))
 
 (defun encode-graph ()
@@ -174,7 +176,6 @@
     (return-from add-node graph))
   (adjust-node-slot node-1 'type #'type)
   (adjust-node-slot node-1 'year #'year)
-  (tmdb:data node-1)
   (call-next-method)
   (labels ((add-edges (node-1 node-2 accessor gender)
 	     (loop for (role-1 role-2) in (intersect-movie-nodes accessor node-1 node-2) do
