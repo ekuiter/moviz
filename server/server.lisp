@@ -307,7 +307,12 @@
 					 (declare (ignore c))
 					 (format t "port ~a is not available" port)
 					 (return-from serve)))
-       (warning (lambda (c) (unless debug (muffle-warning c)))))
+       (warning (lambda (c) (unless debug (muffle-warning c))))
+       (error (lambda (c)
+		(let ((error-string (format nil "~a" c)))
+		  (format t "~a~@[ ~a~]" error-string
+			  (when (search "_uv_" error-string) "- did you install libuv?"))
+		  (return-from serve)))))
     (as:with-event-loop ()
       (let* ((listener (make-instance 'listener :bind address :port port))
 	     (server (start-server listener)))
