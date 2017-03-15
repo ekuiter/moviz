@@ -28,7 +28,7 @@
 (defvar *actresses* (make-list-instance 'actresses))
 
 (json-helpers:make-decodable
- movie role
+ movie role movie-record
  (actor :encode (nil actor
 		     (json::map-slots (json:stream-object-member-encoder stream) actor)
 		     (when (eql *encoding-edges* :readable)

@@ -37,8 +37,8 @@
   (let ((stylesheets (list "vendor/jquery-ui.min" "vendor/jquery.qtip.min" "app"))
 	(scripts (list "vendor/jquery.min" "vendor/jquery-ui.min" "vendor/svg-pan-zoom.min"
 		       "vendor/jquery.qtip.min" "helpers" "server" "filter" "node-filter"
-		       "edge-filter" "graph-classes" "sidebar" "add-movies" "progress"
-		       "debug" "graph" "graph-nodes" "graph-edges" "app")))
+		       "edge-filter" "graph-classes" "sidebar" "movie-dialog" "progress"
+		       "debug" "graph" "graph-nodes" "graph-edges" "movie-details" "app")))
     `(with-html-string
        (:html (:head (:title "moviz")
 		     (:meta :charset "utf-8")
@@ -101,6 +101,8 @@
 
 (defroute (:get "/") (req res)
   (let ((body (make-html
+		(:div :id "preload-1")
+		(:div :id "preload-2")
 		(:div :id "wrapper"
 		      (:div :id "sidebar-pad")
 		      (:object :id "graph" :type "image/svg+xml")
@@ -126,6 +128,8 @@
 				(:div (:span :class "ui-icon ui-icon-disk") "Save graph"))
 			   (:li :id "export"
 				(:div (:span :class "ui-icon ui-icon-image") "Export image"))
+			   (:li :id "search"
+				(:div (:span :class "ui-icon ui-icon-search") "Search"))
 			   (:li :id "debug"
 				(:div (:span :class "ui-icon ui-icon-wrench") "Debug"))
 			   (:li :id "info"
@@ -175,7 +179,11 @@
 		      (:p :class "progress"))
 		(:div :id "setup-dialog" :title "Setting up ..."
 		      (:p "Hold on, this only needs to be done once.")
-		      (:p :class "progress")))))
+		      (:p :class "progress"))
+		(:div :id "movie-details-dialog")
+		(:div :id "search-dialog" :title "Search movies"
+		      (:p "Enter a movie title:")
+		      (:input)))))
     (send-response res :headers '(:content-type "text/html; charset=utf-8") :body body)))
 
 (defroute (:get "/setup/") (req res)
@@ -243,6 +251,23 @@
 
 (def-search-route "search" imdb:do-search imdb:id-class)
 (def-search-route "inverse-search" imdb:inverse-search imdb:inverse-id-class)
+
+(defroute (:get "/details/(.+)") (req res (title))
+  (let* ((result-table (make-hash-table :test 'equal))
+	 (search-list (lambda (list-string)
+			(imdb:do-search (imdb:make-list-instance list-string)
+			  (make-instance 'imdb:movie :title title))))
+	 (processes
+	  (loop for list-string in
+	       '("trivia" "goofs" "quotes" "soundtracks" "crazy-credits" "alternate-versions")
+	     collect (ccl:process-run-function "details" search-list list-string))))
+    (loop for process in processes for records = (ccl:join-process process) do
+	 (loop for record in records do
+	      (setf (gethash (imdb:episode record) result-table)
+		    (append (gethash (imdb:episode record) result-table) (list record)))))
+    (let ((result-list (loop for records being the hash-values in result-table collect records)))
+      (send-json-response res (sort result-list #'< :key
+				    (lambda (records) (imdb:episode-score (first records))))))))
 
 (defroute (:get "/suggest/(.+)") (req res (title))
   (let* ((results (imdb:suggest (imdb:make-list-instance 'movies) title)))

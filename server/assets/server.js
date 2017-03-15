@@ -1,17 +1,19 @@
 function Server(initialized) {
     var self = this;
     if (!(this instanceof Server))
-	return new Server(debug);
+	return new Server();
     
     this.invalidatables = [];
     this.destructiveInvalidatables = [];
+    this.cache = {};
     this.setup = this.callFn("setup");
-    this.getNodes = this.getFn("graph/nodes", "movies", "cachedNodes",
+    this.getNodes = this.getFn("graph/nodes", "movies", "nodes",
 			       function(node) { return node.title; });
-    this.getEdges = this.getFn("graph/edges", "actors", "cachedEdges", function(edge) {
+    this.getEdges = this.getFn("graph/edges", "actors", "edges", function(edge) {
 	return edge.role1.actor.lastName + ", " + edge.role1.actor.firstName;
     });
-    this.tmdbSearch = this.callFn("tmdb/search");
+    this.tmdbSearch = this.cachedFn(
+	this.thenFn(this.callFn("tmdb/search"), asObject), "tmdbSearch");
     this.clear = this.destructiveFn(this.callFn("clear"));
     this.add = this.destructiveFn(this.callFn("add"));
     this.progress = this.callFn("progress");
@@ -23,9 +25,11 @@ function Server(initialized) {
     this.filterEdges = this.invalidateFn(
 	this.callFilterFn("filter/edge", ["gender-filter", "same-character-filter",
 					  "billing-filter", "actor-filter"]));
-    this.search = this.callFn("search");
-    this.inverseSearch = this.callFn("inverse-search");
-    this.suggest = this.callFn("suggest");
+    this.search = this.cachedFn(this.thenFn(this.callFn("search"), asList), "search");
+    this.inverseSearch = this.cachedFn(
+	this.thenFn(this.callFn("inverse-search"), asList), "inverseSearch");
+    this.details = this.cachedFn(this.thenFn(this.callFn("details"), asList), "details");
+    this.suggest = this.thenFn(this.callFn("suggest"), asList);
     this.eval = this.callFn("eval");
     this.loadGraph = this.destructiveFn(this.callFn("graph/load"));
 
@@ -129,17 +133,25 @@ Server.prototype = {
 	var self = this;
 	return this.thenFn(this.callFn(fn), function(data) {
 	    asList(data).forEach(function(datum) {
-		var metadata = false;
 		datum.getMetadata = function() {
-		    if (metadata === false)
-			return self.tmdbSearch(tmdbFn, idFn(datum)).then(function(data) {
-			    return metadata = asObject(data);
-			});
-		    else
-			return instantPromise(metadata);
+		    return self.tmdbSearch(tmdbFn, idFn(datum));
 		};
 	    });
-	    return self[cacheProp] = asList(data);
+	    return self.cache[cacheProp] = asList(data);
 	});
+    },
+
+    cachedFn: function(fn, cacheProp) {
+	var self = this;
+	self.cache[cacheProp] = {};
+	return function() {
+	    var key = JSON.stringify(Array.prototype.slice.call(arguments));
+	    if (self.cache[cacheProp][key])
+		return instantPromise(self.cache[cacheProp][key]);
+	    else
+		return fn.apply(this, arguments).then(function(data) {
+		    return self.cache[cacheProp][key] = data;
+		});
+	};
     }
 };

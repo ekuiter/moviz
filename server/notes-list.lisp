@@ -38,7 +38,8 @@
 	    (setf notes (cl-ppcre:regex-replace-all "\\n " notes (char-to-string #\Tab)))
 	    (setf notes (split-sequence #\Newline notes :remove-empty-subseqs t))
 	    (mapcar (lambda (note) (cl-ppcre:regex-replace-all "\\t" (subseq note 2)
-							       delimiter)) notes))))
+							       delimiter))
+		    notes))))
   (flet ((extract-record-fn (record)
 	   (let* ((new-line-pos (position #\Newline record))
 		  (notes (subseq record new-line-pos)))
@@ -51,9 +52,18 @@
     (call-next-method notes-list movie stream :extract-record-fn #'extract-record-fn
 		      :include-empty-lines include-empty-lines)))
 
+(defun episode-score (movie-record)
+  (or (cl-ppcre:register-groups-bind (season episode)
+	  ("\\(#(.*)\\.(.*)\\)" (episode movie-record))
+	(+ (* (parse-integer season) 1000) (parse-integer episode)))
+      -1))
+
 (defmethod do-search ((notes-list notes-list) (movie movie))
-  (do-search-linear notes-list movie :id (title movie)
-		    :id= (lambda (id current-id) (equal id (string-trim "\"" current-id)))))
+  (let ((records
+	 (do-search-linear notes-list movie :id (title movie)
+			   :id= (lambda (id current-id)
+				  (equal id (string-trim "\"" current-id))))))
+    (sort records #'< :key #'episode-score)))
 
 (defclass alternate-versions (movie-record) ())
 (defclass alternate-versions-list (notes-list-with-end) ())

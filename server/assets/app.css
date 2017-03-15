@@ -4,7 +4,14 @@ body {
     transition: opacity ease 150ms;
     -webkit-app-region: drag;
     -webkit-user-select: none;
+}
+
+#preload-1 {
     background: url(images/loading.svg) no-repeat -9999px -9999px;
+}
+
+#preload-2 {
+    background: url(images/loading-big.svg) no-repeat -9999px -9999px;
 }
 
 button, .ui-widget, a, #overlay {
@@ -223,5 +230,111 @@ a:link, a:visited {
     margin: 10px auto;
     padding: 24px;
     width: 0;
+    height: 0;
     background-image: url(images/loading.svg);
+}
+
+.loading-big {
+    margin: 10px auto;
+    padding: 50px;
+    width: 0;
+    height: 0;
+    background-image: url(images/loading-big.svg);
+}
+
+.clear {
+    clear: both;
+}
+
+#movie-details-dialog {
+    display: flex;
+    align-items: center;
+}
+
+#movie-details-dialog ul.episodes {
+    min-width: 20%;
+    max-width: 20%;
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+    height: 100%;
+    overflow: scroll;
+}
+
+#movie-details-dialog ul.episodes li {
+    display: block;
+    width: 100%;
+}
+
+#movie-details-dialog ul.episodes li a {
+    display: block;
+    text-decoration: none;
+    padding: 3px;
+    border: 1px solid #c5c5c5;
+    border-bottom: 0;
+    color: #454545;
+    background-color: #f6f6f6;
+}
+
+#movie-details-dialog ul.episodes li:last-child a {
+    border-bottom: 1px solid #c5c5c5;
+}
+
+#movie-details-dialog ul.episodes li a:hover {
+    border: 1px solid #ccc;
+    border-bottom: 0;
+    color: #2b2b2b;
+    background-color: #ededed;
+}
+
+#movie-details-dialog ul.episodes li:last-child a:hover {
+    border-bottom: 1px solid #ccc;
+}
+
+#movie-details-dialog ul.episodes li.active a {
+    border: 1px solid #003eff;
+    border-bottom: 0;
+    color: #fff;
+    background-color: #007fff;
+}
+
+#movie-details-dialog ul.episodes li.active:last-child a {
+    border-bottom: 1px solid #003eff;
+}
+
+#movie-details-dialog ul.episodes li.active + li a {
+    border-top: 1px solid #003eff;
+}
+
+#movie-details-dialog .details {
+    padding-left: 20px;
+    -webkit-user-select: auto;
+    width: 100%;
+    height: 100%;
+    overflow: scroll;
+    line-height: 1.5em;
+}
+
+#movie-details-dialog .details ul {
+    list-style-type: square;
+    padding-left: 20px;
+}
+
+#movie-details-dialog .details li em, #movie-details-dialog .details li b {
+    color: #003eff;
+}
+
+
+#movie-details-dialog .details li .goof, #movie-details-dialog .details li .spoiler,
+#movie-details-dialog .details li .quote {
+    font-weight: bold;
+}
+
+#movie-details-dialog .details li .spoiler {
+    color: #f00;
+}
+
+#movie-details-dialog .details li.quotes > div {
+    padding-left: 20px;
+    text-indent: -20px;
 }

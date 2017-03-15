@@ -23,7 +23,7 @@
 	   :goofs-list :goofs :trivia-list :trivia :crazy-credits :crazy-credits-list
 	   :soundtracks :soundtracks-list :quotes :quotes-list :record-class :id-class
 	   :inverse-id-class :movies-list :suggest :first-name :last-name :number
-	   :type :year)
+	   :type :year :movie-record :episode-score)
   (:shadow :file-length))
 
 (defpackage :tmdb

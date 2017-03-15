@@ -38,13 +38,13 @@ GraphEdges.prototype = {
 
 	    function textHtml(defer) {
 		defer = defer || $.Deferred();
-		if (!App().server.cachedEdges) {
+		if (!App().server.cache.edges) {
 		    defer.notify("<div class='loading'></div>");
 		    App().server.getEdges().then(function() {
 			return textHtml(defer);
 		    });
 		} else {
-		    var edge = App().server.cachedEdges.find(function(edge) {
+		    var edge = App().server.cache.edges.find(function(edge) {
 			return edge.node1.title === nodes[0] && edge.node2.title === nodes[1]
 			    && edge.role1.actor.readableName === actor;
 		    });
@@ -77,6 +77,6 @@ GraphEdges.prototype = {
     },
 
     invalidate: function() {
-	App().server.cachedEdges = null;
+	App().server.cache.edges = null;
     }
 };

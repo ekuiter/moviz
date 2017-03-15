@@ -5,7 +5,7 @@ GraphNodes.prototype = {
 	svgDocument().find(".node").each(function() {
 	    var self = this;
 	    var movieTitle = $(this).children("text").text();
-	    var movie = App().server.cachedNodes.find(function(node) {
+	    var movie = App().server.cache.nodes.find(function(node) {
 		return node.title === movieTitle;
 	    });
 	    
