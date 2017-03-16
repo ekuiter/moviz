@@ -10,8 +10,10 @@ GraphNodes.prototype = {
 	    });
 	    movie.prepareTooltip(this);
 	    $(this).click(function() {
-		$(this).qtip("hide");
-		new MovieDetails(movie);
+		if (!App().graph.zoomingOrPanning) {
+		    $(this).qtip("hide");
+		    new MovieDetails(movie);
+		}
 	    });
 	});
     }

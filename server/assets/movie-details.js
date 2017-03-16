@@ -98,7 +98,7 @@ function MovieDetails(movie) {
 	    var detailsDiv = $("<div class='details'>");
 	    dialog.empty().append(episodesUl).append(detailsDiv);
 	    episodesUl.append($("<p>").append($("<b>").text("Episodes")));
-	    data.forEach(function(records) {
+	    asList(data.details).forEach(function(records) {
 		var episode = records[0].episode || movie.title;
 		episodesUl.append(
 		    $("<li>").append($("<a href='#'>").text(episode).click(function(e) {
@@ -114,10 +114,10 @@ function MovieDetails(movie) {
 			attachLinks();
 		    })));
 	    });
-	    if (data.length === 0)
-		episodesUl.append($("<p>").text("No episodes found."));
-	    else
+	    if (data.details)
 		episodesUl.find("li a").first().click();
+	    else
+		episodesUl.append($("<p>").text("No episodes found."));
 	});
     }, function() {
 	App().reportError("movie " + movie.title + " not found");

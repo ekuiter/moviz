@@ -25,7 +25,7 @@ function Server(initialized) {
     this.search = this.cachedFn(this.thenFn(this.callFn("search"), asList), "search");
     this.inverseSearch = this.cachedFn(
 	this.thenFn(this.callFn("inverse-search"), asList), "inverseSearch");
-    this.details = this.cachedFn(this.thenFn(this.callFn("details"), asList), "details");
+    this.details = this.cachedFn(this.callFn("details"), "details");
     this.suggest = this.thenFn(this.callFn("suggest"), asList);
     this.eval = this.callFn("eval");
     this.loadGraph = this.destructiveFn(this.callFn("graph/load"));

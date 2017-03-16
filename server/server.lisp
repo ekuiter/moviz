@@ -265,9 +265,17 @@
 	 (loop for record in records do
 	      (setf (gethash (imdb:episode record) result-table)
 		    (append (gethash (imdb:episode record) result-table) (list record)))))
-    (let ((result-list (loop for records being the hash-values in result-table collect records)))
-      (send-json-response res (sort result-list #'< :key
-				    (lambda (records) (imdb:episode-score (first records))))))))
+    (let* ((result-list (loop for records being the hash-values in result-table collect records))
+	   (details (sort result-list #'< :key
+			  (lambda (records) (imdb:episode-score (first records)))))
+	   (app:*encoding-vertices* :detailed))
+      (send-response
+       res :headers '(:content-type "application/json; charset=utf-8")
+       :body (with-output-to-string (stream)
+	       (json:with-object (stream)
+		 (json:encode-object-member
+		  :movie (app:find-movie title (graph:vertices (app:current-graph))) stream)
+		 (json:encode-object-member :details details stream)))))))
 
 (defroute (:get "/suggest/(.+)") (req res (title))
   (let* ((results (imdb:suggest (imdb:make-list-instance 'movies) title)))

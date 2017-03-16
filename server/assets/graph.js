@@ -71,25 +71,23 @@ function Graph() {
 	svgDocument().find("title").remove();
     });
 
-    var zoomOrPanEvent = (function() {
-	var zoomingOrPanning = false;
-
-	return function() {
-	    if (!zoomingOrPanning) {
-		svgDocument().find(".node, #actors.edge text").each(function() {
-		    $(this).qtip("hide");
-		    $(this).qtip("disable");
-		});
-	    }
-	    zoomingOrPanning = true;
-	    defer(function() {
-		zoomingOrPanning = false;
-		svgDocument().find(".node, #actors.edge text").each(function() {
-		    $(this).qtip("enable");
-		});
-	    }, 500);
-	};
-    })();
+    this.zoomingOrPanning = false;
+    
+    function zoomOrPanEvent() {
+	if (!self.zoomingOrPanning) {
+	    svgDocument().find(".node, #actors.edge text").each(function() {
+		$(this).qtip("hide");
+		$(this).qtip("disable");
+	    });
+	}
+	self.zoomingOrPanning = true;
+	defer(function() {
+	    self.zoomingOrPanning = false;
+	    svgDocument().find(".node, #actors.edge text").each(function() {
+		$(this).qtip("enable");
+	    });
+	}, 500);
+    }
 }
 
 Graph.prototype = {

@@ -12,7 +12,7 @@
   (:use :common-lisp :cl-json)
   (:export :bypass-initialization :encode-with-prototype :encode-hash-table-with-prototype
 	   :make-decodable :to-form :json-hash-table :decode-object-from-string
-	   :allocate-and-populate-instance))
+	   :allocate-and-populate-instance :build-object))
 
 (defpackage :imdb
   (:use :common-lisp :split-sequence)
@@ -27,7 +27,7 @@
   (:shadow :file-length))
 
 (defpackage :tmdb
-  (:use :common-lisp :split-sequence)
+  (:use :common-lisp :split-sequence :json-helpers)
   (:export :metadata :poster-url :genres :plot :setup :profile-url))
 
 (defpackage :graph

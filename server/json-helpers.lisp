@@ -88,3 +88,8 @@
 	  (:beginning-of-string #'beginning :string-char #'parse-token
 				:end-of-string #'end :string-scope '(*string*))
 	(decode-json-from-string json)))))
+
+(defun build-object (key value object)
+  (if value
+      (acons key value object)
+      object))

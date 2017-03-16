@@ -95,11 +95,6 @@
   (when (data movie)
     (value (data movie) :overview)))
 
-(defun build-object (key value object)
-  (if value
-      (acons key value object)
-      object))
-
 (defmethod metadata ((movie imdb:movie) &optional (size "original"))
   (when (data movie)
     (build-object :poster-url (poster-url movie size)
