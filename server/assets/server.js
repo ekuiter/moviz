@@ -8,7 +8,7 @@ function Server(initialized) {
     this.cache = {};
     this.setup = this.callFn("setup");
     this.getNodes = this.getFn("graph/nodes", Movie, "nodes");
-    this.getEdges = this.getFn("graph/edges", Actor, "edges");
+    this.getEdges = this.getFn("graph/edges", RoleEdge, "edges");
     this.tmdbSearch = this.cachedFn(
 	this.thenFn(this.callFn("tmdb/search"), asObject), "tmdbSearch");
     this.clear = this.destructiveFn(this.callFn("clear"));

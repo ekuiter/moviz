@@ -89,3 +89,7 @@ function callElectronGlobal(name) {
 function svgDocument() {
     return $($("#graph")[0].contentDocument);
 }
+
+function billingScore(role) {
+    return role.billing || 9999;
+}

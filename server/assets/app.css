@@ -14,6 +14,10 @@ body {
     background: url(images/loading-big.svg) no-repeat -9999px -9999px;
 }
 
+#preload-3 {
+    background: url(vendor/images/ui-icons_ffba3b_256x240.png) no-repeat -9999px -9999px;
+}
+
 button, .ui-widget, a, #overlay {
     -webkit-app-region: no-drag;
 }
@@ -188,6 +192,11 @@ a:link, a:visited {
     font-size: 12px;
 }
 
+#movie-details-dialog .details .tooltip {
+    min-width: auto;
+    font-size: 16px;
+}
+
 .tooltip .ui-icon {
     margin: -3px 5px 0 -20px;
     background-image: url(vendor/images/ui-icons_ffba3b_256x240.png);
@@ -251,7 +260,7 @@ a:link, a:visited {
     align-items: center;
 }
 
-#movie-details-dialog ul.episodes {
+#movie-details-dialog ul.nav {
     min-width: 20%;
     max-width: 20%;
     margin: 0;
@@ -261,12 +270,12 @@ a:link, a:visited {
     overflow: scroll;
 }
 
-#movie-details-dialog ul.episodes li {
+#movie-details-dialog ul.nav li {
     display: block;
     width: 100%;
 }
 
-#movie-details-dialog ul.episodes li a {
+#movie-details-dialog ul.nav li a {
     display: block;
     text-decoration: none;
     padding: 3px;
@@ -276,33 +285,35 @@ a:link, a:visited {
     background-color: #f6f6f6;
 }
 
-#movie-details-dialog ul.episodes li:last-child a {
+#movie-details-dialog ul.nav li:last-child a, #movie-details-dialog ul.nav li.last a {
     border-bottom: 1px solid #c5c5c5;
 }
 
-#movie-details-dialog ul.episodes li a:hover {
+#movie-details-dialog ul.nav li a:hover {
     border: 1px solid #ccc;
     border-bottom: 0;
     color: #2b2b2b;
     background-color: #ededed;
 }
 
-#movie-details-dialog ul.episodes li:last-child a:hover {
+#movie-details-dialog ul.nav li:last-child a:hover,
+#movie-details-dialog ul.nav li.last a:hover {
     border-bottom: 1px solid #ccc;
 }
 
-#movie-details-dialog ul.episodes li.active a {
+#movie-details-dialog ul.nav li.active a {
     border: 1px solid #003eff;
     border-bottom: 0;
     color: #fff;
     background-color: #007fff;
 }
 
-#movie-details-dialog ul.episodes li.active:last-child a {
+#movie-details-dialog ul.nav li.active:last-child a,
+#movie-details-dialog ul.nav li.active.last a {
     border-bottom: 1px solid #003eff;
 }
 
-#movie-details-dialog ul.episodes li.active + li a {
+#movie-details-dialog ul.nav li.active + li a {
     border-top: 1px solid #003eff;
 }
 
@@ -337,4 +348,13 @@ a:link, a:visited {
 #movie-details-dialog .details li.quotes > div {
     padding-left: 20px;
     text-indent: -20px;
+}
+
+#movie-details-dialog .details .flex {
+    display: flex;
+}
+
+#movie-details-dialog .details .flex ul {
+    margin-top: 0;
+    padding-right: 30px;
 }

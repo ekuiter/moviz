@@ -33,6 +33,25 @@ Movie.prototype = {
 	return App().server.tmdbSearch("movies", this.title);
     },
 
+    textHtml: function() {
+	var defer = $.Deferred();
+	defer.notify("<div class='loading'></div>");
+	this.getMetadata().then(function(metadata) {
+	    var text = "";
+	    if (metadata.posterUrl)
+		text += "<img src='" + metadata.posterUrl + "'>";
+	    if (metadata.genres)
+		text += "<p><b>" + metadata.genres.join(", ") + "</b></p>";
+	    if (metadata.plot)
+		text += "<p>" + metadata.plot + "</p>";
+	    if (text === "")
+		text += "<p>No information found.</p>" +
+		"<p>Check your Internet connection, then restart moviz.</p>";
+	    defer.resolve(text);
+	});
+	return defer.promise();
+    },
+
     prepareTooltip: function(elem) {
 	var self = this;
 	$(elem).qtip({
@@ -46,20 +65,7 @@ Movie.prototype = {
 		    return title;
 		},
 		text: function(event, api) {
-		    self.getMetadata().then(function(metadata) {
-			var text = "";
-			if (metadata.posterUrl)
-			    text += "<img src='" + metadata.posterUrl + "'>";
-			if (metadata.genres)
-			    text += "<p><b>" + metadata.genres.join(", ") + "</b></p>";
-			if (metadata.plot)
-			    text += "<p>" + metadata.plot + "</p>";
-			if (text === "")
-			    text += "<p>No information found.</p>" +
-			    "<p>Check your Internet connection, then restart moviz.</p>";
-			api.set("content.text", text);
-		    });
-		    return "<div class='loading'></div>";
+		    return self.textHtml();
 		}
 	    },
 	    show: { solo: true },

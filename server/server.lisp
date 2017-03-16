@@ -103,6 +103,7 @@
   (let ((body (make-html
 		(:div :id "preload-1")
 		(:div :id "preload-2")
+		(:div :id "preload-3")
 		(:div :id "wrapper"
 		      (:div :id "sidebar-pad")
 		      (:object :id "graph" :type "image/svg+xml")
@@ -202,7 +203,7 @@
 (defroute (:get "/tmdb/search/movies/(.+)") (req res (movie-title))
   (let* ((movie (app:find-movie movie-title (graph:vertices (app:current-graph))))
 	 (movie (or movie (make-instance 'imdb:movie :title movie-title))))
-    (send-json-response res (tmdb:metadata movie))))
+    (send-json-response res (tmdb:metadata movie "w154"))))
 
 (defroute (:get "/tmdb/search/actors/(.+)") (req res (actor-name))
   (let ((metadata (tmdb:metadata (make-instance 'imdb:actor :name actor-name) "w185")))
@@ -268,7 +269,8 @@
     (let* ((result-list (loop for records being the hash-values in result-table collect records))
 	   (details (sort result-list #'< :key
 			  (lambda (records) (imdb:episode-score (first records)))))
-	   (app:*encoding-vertices* :detailed))
+	   (app:*encoding-vertices* :detailed)
+	   (app:*encoding-edges* :readable))
       (send-response
        res :headers '(:content-type "application/json; charset=utf-8")
        :body (with-output-to-string (stream)
