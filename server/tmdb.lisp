@@ -70,7 +70,7 @@
       (let* ((method (format nil "search/~a"
 			     (cond ((eql (imdb:type movie) :movie) "movie")
 				   ((eql (imdb:type movie) :series) "tv")
-				   (t (error "the given movie has no type")))))
+				   (t "multi"))))
 	     (params (acons :query (imdb:title movie) nil))
 	     (response (call-api method params))
 	     (results (value response :results)))

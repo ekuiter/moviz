@@ -2,6 +2,10 @@
     cursor: default;
 }
 
+.node * {
+    cursor: pointer;
+}
+
 .node ellipse {
     fill: white;
 }

@@ -201,8 +201,8 @@
 
 (defroute (:get "/tmdb/search/movies/(.+)") (req res (movie-title))
   (let* ((movie (app:find-movie movie-title (graph:vertices (app:current-graph))))
-	 (metadata (when movie (tmdb:metadata movie))))
-    (send-json-response res metadata)))
+	 (movie (or movie (make-instance 'imdb:movie :title movie-title))))
+    (send-json-response res (tmdb:metadata movie))))
 
 (defroute (:get "/tmdb/search/actors/(.+)") (req res (actor-name))
   (let ((metadata (tmdb:metadata (make-instance 'imdb:actor :name actor-name) "w185")))

@@ -7,11 +7,8 @@ function Server(initialized) {
     this.destructiveInvalidatables = [];
     this.cache = {};
     this.setup = this.callFn("setup");
-    this.getNodes = this.getFn("graph/nodes", "movies", "nodes",
-			       function(node) { return node.title; });
-    this.getEdges = this.getFn("graph/edges", "actors", "edges", function(edge) {
-	return edge.role1.actor.lastName + ", " + edge.role1.actor.firstName;
-    });
+    this.getNodes = this.getFn("graph/nodes", Movie, "nodes");
+    this.getEdges = this.getFn("graph/edges", Actor, "edges");
     this.tmdbSearch = this.cachedFn(
 	this.thenFn(this.callFn("tmdb/search"), asObject), "tmdbSearch");
     this.clear = this.destructiveFn(this.callFn("clear"));
@@ -129,15 +126,10 @@ Server.prototype = {
 	document.location.href = "/graph/export/";
     },
 
-    getFn: function(fn, tmdbFn, cacheProp, idFn) {
+    getFn: function(fn, klass, cacheProp) {
 	var self = this;
 	return this.thenFn(this.callFn(fn), function(data) {
-	    asList(data).forEach(function(datum) {
-		datum.getMetadata = function() {
-		    return self.tmdbSearch(tmdbFn, idFn(datum));
-		};
-	    });
-	    return self.cache[cacheProp] = asList(data);
+	    return self.cache[cacheProp] = asList(data).map(klass);
 	});
     },
 

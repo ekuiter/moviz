@@ -80,3 +80,16 @@ GraphEdges.prototype = {
 	App().server.cache.edges = null;
     }
 };
+
+function Actor(obj) {
+    if (!(this instanceof Actor))
+	    return new Actor(obj);
+    $.extend(this, obj);
+}
+
+Actor.prototype = {
+    getMetadata: function() {
+	return App().server.tmdbSearch("actors", this.role1.actor.lastName +
+				       ", " + this.role1.actor.firstName);
+    }
+};

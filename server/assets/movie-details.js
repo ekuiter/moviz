@@ -1,4 +1,7 @@
 function MovieDetails(movie) {
+    if (!(movie instanceof Movie))
+	movie = new Movie(movie);
+    
     var dialog = $("#movie-details-dialog");
 
     function makeMovieDetailsDialog() {
@@ -14,12 +17,19 @@ function MovieDetails(movie) {
 	dialog.find(".details a.episode").click(function(e) {
 	    var self = this;
 	    e.preventDefault();
-	    console.log(this, dialog.find(".episodes li").filter(function() {
-		return $(this).text() === $(self).text();
-	    }));
 	    var episodeLink = dialog.find(".episodes li").filter(function() {
 		return $(this).text() === $(self).text();
 	    }).find("a").click();
+	});
+	dialog.find(".details a.movie").each(function() {
+	    var movie = new Movie($(this).text().match(/"?(.*?)"? \(.{4}\)/)[1]);
+	    movie.prepareTooltip(this);
+	    
+	    $(this).click(function(e) {
+		e.preventDefault();
+		$(this).qtip("hide");
+		new MovieDetails(movie);
+	    });
 	});
     }
 
@@ -39,10 +49,11 @@ function MovieDetails(movie) {
 	var rules = [
 	    [/'([^']*?)' \(qv\)/g, emify],
 	    [/_([^_]*?)( \{([^{]*)\})?_ \(qv\)/g, function(match, currentMovie, _, episode) {
-		if (currentMovie.indexOf(movie) !== -1 && episode)
-		    return "<a href='#' class='episode'><b>" + episode + "</b></a>";
+		if (currentMovie.indexOf(movie.title) !== -1 && episode)
+		    return "<a href='#' class='episode'><em>" + episode + "</em></a>";
 		else
-		    return "<b>" + currentMovie + (episode ? " - " + episode : "") + "</b>";
+		    return "<a href='#' class='movie'><em>" + currentMovie + "</em></a>" +
+		(episode ? " - <em>" + episode + "</em>" : "");
 	    }],
 	    [/SPOILER:/g, "<span class='spoiler'>Spoiler</span>:"],
 	    [/^CONT:/g, "<span class='goof'>Continuity</span>:"],
@@ -80,15 +91,15 @@ function MovieDetails(movie) {
     }
 
     this.assertMovie(movie).then(function() {
-	dialog.dialog("option", "title", "Movie: " + movie).dialog("open").empty().
+	dialog.dialog("option", "title", "Movie: " + movie.title).dialog("open").empty().
 	    append($("<div class='loading-big'>"));
-	App().server.details(movie).then(function(data) {
+	App().server.details(movie.title).then(function(data) {
 	    var episodesUl = $("<ul class='episodes'>");
 	    var detailsDiv = $("<div class='details'>");
 	    dialog.empty().append(episodesUl).append(detailsDiv);
 	    episodesUl.append($("<p>").append($("<b>").text("Episodes")));
 	    data.forEach(function(records) {
-		var episode = records[0].episode || movie;
+		var episode = records[0].episode || movie.title;
 		episodesUl.append(
 		    $("<li>").append($("<a href='#'>").text(episode).click(function(e) {
 			e.preventDefault();
@@ -109,15 +120,15 @@ function MovieDetails(movie) {
 		episodesUl.find("li a").first().click();
 	});
     }, function() {
-	App().reportError("movie " + movie + " not found");
+	App().reportError("movie " + movie.title + " not found");
     });
 }
 
 MovieDetails.prototype = {    
     assertMovie: function(movie) {
 	var defer = $.Deferred();
-	App().server.suggest(movie).then(function(data) {
-	    if (data && data.indexOf(movie) !== -1)
+	App().server.suggest(movie.title).then(function(data) {
+	    if (data && data.indexOf(movie.title) !== -1)
 		defer.resolve();
 	    else
 		defer.reject();
