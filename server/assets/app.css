@@ -313,7 +313,7 @@ a:link, a:visited {
     border-bottom: 1px solid #003eff;
 }
 
-#movie-details-dialog ul.nav li.active + li a {
+#movie-details-dialog ul.nav li:not(.last).active + li a {
     border-top: 1px solid #003eff;
 }
 

@@ -91,6 +91,7 @@ function MovieDetails(movie) {
 	    return $("<li>").addClass(record.prototype.lispClass).html(info);
 	});
     }
+    
     this.assertMovie(movie).then(function() {
 	dialog.dialog("option", "title", "Movie: " + movie.title).dialog("open").empty().
 	    append($("<div class='loading-big'>"));
@@ -111,9 +112,19 @@ function MovieDetails(movie) {
 			})));
 	    }
 
+	    var movieDetails =
+		asList(data.details).find(function(records) { return !records[0].episode; });
+
+	    if (data.movie || movieDetails)
+		navUl.append($("<p>").append($("<b>").text(movie.title)));
+
+	    function episodesAvailable() {
+		return data.details && (movieDetails && data.details.length > 1 ||
+					!movieDetails && data.details.length > 0);
+	    }
+	    
 	    if (data.movie) {
-		navUl.append($("<p>").append($("<b>").text("Movie")));
-		makeNavLink("Actors & actresses", function() {
+		makeNavLink("Summary & cast", function() {
 		    var flex = $("<div class='flex'>"),
 			actorsUl = $("<ul>"), actressesUl = $("<ul>");
 		    var metadataDiv = $("<div class='tooltip'>");
@@ -141,26 +152,34 @@ function MovieDetails(movie) {
 			    ul.append($("<li>").append(actorSpan));
 			});
 		    }
-		}, "last");
+		});
 	    }
-	    
-	    navUl.append($("<p>").append($("<b>").text("Details")));
-	    asList(data.details).forEach(function(records) {
-		var episode = records[0].episode || movie.title;
-		makeNavLink(episode, function() {
+
+	    function showRecordsFn(records) {
+		return function() {
 		    records.forEach(function(record) {
 			detailsDiv.append(
 			    $("<b>").text(readableList(record.prototype.lispClass))).
 			    append($("<ul>").append(infoHtml(record)));
 		    });
 		    attachLinks();
-		});
+		};
+	    }
+	    
+	    if (movieDetails)
+		makeNavLink("Details", showRecordsFn(movieDetails));
+
+	    navUl.find("li").last().addClass("last");
+	    if (episodesAvailable())
+		navUl.append($("<p>").append($("<b>").text("Episodes")));
+	    asList(data.details).forEach(function(records) {
+		var episode = records[0].episode;
+		if (episode)
+		    makeNavLink(episode, showRecordsFn(records));
 	    });
 	    
-	    if (data.details)
+	    if (data.movie || data.details)
 		navUl.find("li a").first().click();
-	    else
-		navUl.append($("<p>").text("No details found."));
 	});
     }, function() {
 	App().reportError("movie " + movie.title + " not found");
