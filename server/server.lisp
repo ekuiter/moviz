@@ -148,7 +148,7 @@
 					   (:span :class "ui-icon ui-icon-circle-minus") " None"))
 			    (:div :class "filters"))
 		      (:p))
-		(:div :id "info-dialog" :title "moviz v1.2"
+		(:div :id "info-dialog" :title "moviz v1.3"
 		      (:p "moviz visualizes connections between movies using the IMDb.")
 		      (:p "Visit on GitHub: " (:a :href "https://github.com/ekuiter/moviz"
 						  :class "external" "ekuiter/moviz"))

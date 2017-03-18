@@ -36,6 +36,7 @@ bundle: client
 	cp -R server/assets moviz-bundle.app/Contents/MacOS/
 	rm moviz-bundle.app/Contents/MacOS/assets/graph.svg || true
 	rm moviz-bundle.app/Contents/MacOS/assets/graph.png || true
+	rm moviz-bundle.app/Contents/MacOS/*.dat || true
 	mkdir moviz-bundle.app/Contents/MacOS/imdb
 	echo "CAUTION: Remember to copy the IMDb files into this folder before using moviz!" > moviz-bundle.app/Contents/MacOS/imdb/README
 	open moviz-bundle.app/Contents/MacOS/imdb

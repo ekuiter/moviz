@@ -17,7 +17,7 @@ Or follow these instructions to build moviz yourself:
 Just follow these steps: _(`repo/` refers to this repository's root folder.)_
 
 1. Download ftp://ftp.fu-berlin.de/pub/misc/movies/database/ to the `repo/server/imdb` directory
-(as of now, only `actors.list`, `actresses.list` and `movies.list` are required by the GUI).
+(as of now, the following files are required by the GUI: `actors.list`, `actresses.list`, `movies.list`, `trivia.list`, `goofs.list`, `quotes.list`, `soundtracks.list`, `crazy-credits.list` and `alternate-versions.list`).
 2. Copy `Electron.app` to `repo/moviz.app`.
 3. Run `make`.
 4. Start moviz by double-clicking `repo/moviz.app`.
@@ -39,9 +39,13 @@ Note however, that you can use these parts separately:
 #### The server
 
 The server accepts the following GET requests: (Almost all routes return JSON data.)
+- `/` displays the web interface
+- `/setup/` fetches some TMDb data and needs to be called the first time the server is used
 - `/graph/nodes/` returns all graph nodes
 - `/graph/edges/` returns all graph edges
-- `/clear` clears the graph
+- `/tmdb/search/movies/MOVIE` fetches TMDb metadata for MOVIE
+- `/tmdb/search/actors/ACTOR` fetches TMDb metadata for ACTOR
+- `/clear/` clears the graph
 - `/add/MOVIE-1/MOVIE-2/...` adds MOVIES to the graph
 - `/abort/` aborts an add operation
 - `/progress/` returns progress of add operation
@@ -50,10 +54,12 @@ The server accepts the following GET requests: (Almost all routes return JSON da
 - `/filter/edge/FILTER` filters graph edges using FILTER (given as JSON)
 - `/search/LIST/ID` searches IMDb LIST for ID
 - `/inverse-search/LIST/RECORD` inverse searches IMDb LIST for RECORD
+- `/details/MOVIE` fetches TMDb metadata and searches IMDb notes lists for MOVIE
 - `/suggest/TITLE` suggests movies matching TITLE
 - `/eval/FORM` evaluates FORM (given as string) on the server
 - `/graph/save/` encodes the graph as a JSON file and downloads it
 - `/graph/load/FILE-NAME` decodes the graph from the JSON file given by FILE-NAME
+- `/graph/export/` creates a PNG file of the graph and downloads it
 
 Some examples:
 - `http://localhost:3000/search/actors/Amell, Stephen`
@@ -108,6 +114,7 @@ SPOILER: Early on in the series, [...]
 Run some tests:
 ```
 ? (tests:run-tests)
+Testing MOVIES-LIST-SUGGEST ...
 Testing QUOTES-LIST-DO-SEARCH ...
 Testing TRIVIA-LIST-DO-SEARCH ...
 Testing SOUNDTRACKS-LIST-DO-SEARCH ...
@@ -116,9 +123,9 @@ Testing CRAZY-CREDITS-LIST-DO-SEARCH ...
 Testing ALTERNATE-VERSIONS-LIST-DO-SEARCH ...
 Testing ACTORS-LIST-INVERSE-SEARCH ...
 Inverse searching imdb/actresses.list for one movie ...
- 0% 11% 27% 43% 59% 75% 91% 
+ 0% 11% 27% 43% 59% 75% 91% 100%
 Testing ACTORS-LIST-DO-SEARCH ...
-8 of 8 tests passed.
+9 of 9 tests passed.
 ```
 
 © Elias Kuiter 2017 - elias-kuiter.de

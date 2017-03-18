@@ -57,9 +57,9 @@
 	 (goof (third results)))
     (assert (= (length results) 137))
     (assert (movie= movie (movie goof)))
-    (assert (equal (episode goof) "After Life (#6.3)"))
-    (assert (= (length (info goof)) 3))
-    (assert (equal (search "CREW: When" (first (info goof))) 0))))
+    (assert (equal (episode goof) "Welcome to the Hellmouth (#1.1)"))
+    (assert (= (length (info goof)) 6))
+    (assert (equal (search "CHAR: In the first" (first (info goof))) 0))))
 
 (deftest soundtracks-list-do-search
   (let* ((movie (make-instance 'movie :title "Game of Thrones"))
