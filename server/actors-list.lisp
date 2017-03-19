@@ -80,6 +80,10 @@
   "Tests whether an actor is less than another."
   (string-lessp (name actor-1) (name actor-2)))
 
+(defmethod readable-actor< ((actor-1 actor) (actor-2 actor))
+  "Tests whether an actor is less than another according to their readable representation."
+  (string-lessp (readable-name actor-1) (readable-name actor-2)))
+
 (define-condition bad-line-error (error) ())
 
 (defun line-to-parts (line)

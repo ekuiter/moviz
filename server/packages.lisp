@@ -13,7 +13,7 @@
   (:use :common-lisp :cl-json)
   (:export :bypass-initialization :encode-with-prototype :encode-hash-table-with-prototype
 	   :make-decodable :to-form :json-hash-table :decode-object-from-string
-	   :allocate-and-populate-instance :build-object))
+	   :allocate-and-populate-instance :build-object :bindings))
 
 (defpackage :imdb
   (:use :common-lisp :split-sequence)
@@ -24,7 +24,7 @@
 	   :goofs-list :goofs :trivia-list :trivia :crazy-credits :crazy-credits-list
 	   :soundtracks :soundtracks-list :quotes :quotes-list :record-class :id-class
 	   :inverse-id-class :movies-list :suggest :first-name :last-name :number
-	   :type :year :movie-record :episode-score :readable-actor=)
+	   :type :year :movie-record :episode-score :readable-actor= :readable-actor<)
   (:shadow :file-length))
 
 (defpackage :tmdb
@@ -33,7 +33,7 @@
 
 (defpackage :synchronkartei
   (:use :common-lisp)
-  (:export :voice-actor :dubbed-role :do-search :voice-actors))
+  (:export :dubbed-movie :voice-actor :dubbed-role :suggest :voice-actors :role :path))
 
 (defpackage :graph
   (:use :common-lisp)
@@ -46,7 +46,7 @@
   (:use :common-lisp :imdb :graph)
   (:export :to-dot :make-image :show :current-graph :clear-graph :add-movies :save-and-quit
 	   :make-graph :encode-graph :restore-graph :*encoding-vertices* :*encoding-edges*
-	   :find-movie :actors :actresses :voice-actors :movie-node))
+	   :find-movie :actors :actresses :voice-actors :movie-node :add-voice-actors))
 
 (defpackage :tests
   (:use :common-lisp :imdb)

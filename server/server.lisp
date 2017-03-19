@@ -253,6 +253,20 @@
 (def-search-route "search" imdb:do-search imdb:id-class)
 (def-search-route "inverse-search" imdb:inverse-search imdb:inverse-id-class)
 
+(defroute (:get "/synchronkartei/suggest/(.+)") (req res (movie-title))
+  (send-json-response res (synchronkartei:suggest movie-title)))
+
+(def-destructive-graph-route (:get "/synchronkartei/add/(.+?)/(.+?)") (req res (movie-title path))
+  (let ((movie (app:find-movie movie-title (graph:vertices (app:current-graph)))))
+    (when movie
+      (app:add-voice-actors
+       movie (make-instance 'synchronkartei:dubbed-movie :title movie-title :path path))))
+  nil)
+
+(defroute (:get "/synchronkartei/search/(.+)") (req res (movie-title))
+  (let ((movie (app:find-movie movie-title (graph:vertices (app:current-graph)))))
+    (send-json-response res (when movie (app:voice-actors movie)))))
+
 (defroute (:get "/details/(.+)") (req res (title))
   (let* ((result-table (make-hash-table :test 'equal))
 	 (search-list (lambda (list-string)
@@ -280,8 +294,7 @@
 		 (json:encode-object-member :details details stream)))))))
 
 (defroute (:get "/suggest/(.+)") (req res (title))
-  (let* ((results (imdb:suggest (imdb:make-list-instance 'movies) title)))
-    (send-json-response res results)))
+    (send-json-response res (imdb:suggest (imdb:make-list-instance 'movies) title)))
 
 (defroute (:get "/eval/(.+)") (req res (form))
   (send-json-response res (eval (read-from-string form))))

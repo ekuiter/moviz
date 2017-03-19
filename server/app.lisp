@@ -19,6 +19,11 @@
 	   :initform nil
 	   :reader gender)))
 
+(defclass dubbed-role-edge (role-edge)
+  ((voice-actor :initarg :voice-actor
+		:initform (error "must supply voice actor")
+		:reader voice-actor)))
+
 (defclass json-movie-node ()
   ((movie-node :initarg :movie-node)))
 
@@ -30,11 +35,20 @@
 (defvar *actresses* (make-list-instance 'actresses))
 
 (json-helpers:make-decodable
- movie role movie-record synchronkartei:voice-actor synchronkartei:dubbed-role
+ movie role movie-record dubbed-role-edge
+ synchronkartei:dubbed-movie synchronkartei:dubbed-role
  (actor :encode (nil actor
 		     (json::map-slots (json:stream-object-member-encoder stream) actor)
 		     (when (eql *encoding-edges* :readable)
 		       (json:encode-object-member :readable-name (readable-name actor) stream))))
+ (synchronkartei:voice-actor
+  :decode (voice-actor (with-slots (first-name last-name number) voice-actor
+			 (setf first-name (cdr (assoc 'synchronkartei::first-name
+						      json-helpers:bindings)) last-name "")))
+  :encode (nil voice-actor
+	       (json::map-slots (json:stream-object-member-encoder stream) voice-actor)
+	       (when (eql *encoding-edges* :readable)
+		 (json:encode-object-member :readable-name (readable-name voice-actor) stream))))
  (role-edge :decode (role-edge
 		     (with-slots (gender) role-edge
 		       (setf gender (intern (string-upcase gender) :keyword)))))
@@ -116,6 +130,9 @@
 
 (defmethod label ((edge role-edge))
   (readable-name (actor (role-1 edge))))
+
+(defmethod label ((edge dubbed-role-edge))
+  (concatenate 'string (readable-name (voice-actor edge)) " (VA)"))
 
 (defmethod role-edge-score ((edge role-edge))
   (min (role-score (role-1 edge)) (role-score (role-2 edge))))
@@ -314,6 +331,26 @@
     (when movies
       (apply #'add-nodes *graph*
 	     (mapcar (lambda (movie) (make-instance 'movie-node :title movie)) movies)))))
+
+(defmethod add-voice-actors ((node-1 movie-node) (movie synchronkartei:dubbed-movie))
+  (when (voice-actors node-1) (return-from add-voice-actors *graph*))
+  (let ((voice-actors (synchronkartei:voice-actors movie node-1))
+	(intersect-sorted
+	 (intersect-sorted-fn :test= #'readable-actor= :test< #'readable-actor<
+			      :key #'synchronkartei:voice-actor)))
+    (unless voice-actors (return-from add-voice-actors *graph*))
+    (setf (slot-value node-1 'voice-actors) voice-actors)
+    (loop for node-2 in (vertices *graph*)
+       unless (movie= node-1 node-2) do
+	 (loop for (dubbed-role-1 dubbed-role-2) in
+	      (funcall intersect-sorted (voice-actors node-1) (voice-actors node-2)) do
+	      (add-edge *graph*
+			(make-instance 'dubbed-role-edge :node-1 node-1 :node-2 node-2
+				       :role-1 (synchronkartei:role dubbed-role-1)
+				       :role-2 (synchronkartei:role dubbed-role-2)
+				       :voice-actor
+				       (synchronkartei:voice-actor dubbed-role-1))))))
+  *graph*)
 
 (defun save-and-quit (file-name)
   (ccl:save-application file-name :prepend-kernel t))
