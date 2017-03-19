@@ -4,7 +4,9 @@
 
 (defclass movie-node (node movie)
   ((actors :initform :undefined)
-   (actresses :initform :undefined)))
+   (actresses :initform :undefined)
+   (voice-actors :initform nil
+		 :reader voice-actors)))
 
 (defclass role-edge (edge)
   ((role-1 :initarg :role-1
@@ -28,7 +30,7 @@
 (defvar *actresses* (make-list-instance 'actresses))
 
 (json-helpers:make-decodable
- movie role movie-record
+ movie role movie-record synchronkartei:voice-actor synchronkartei:dubbed-role
  (actor :encode (nil actor
 		     (json::map-slots (json:stream-object-member-encoder stream) actor)
 		     (when (eql *encoding-edges* :readable)
@@ -66,6 +68,7 @@
 	 (json:encode-object-member :title (title movie-node) stream)
 	 (json:encode-object-member :actors (length (actors movie-node)) stream)
 	 (json:encode-object-member :actresses (length (actresses movie-node)) stream)
+	 (json:encode-object-member :voice-actors (length (voice-actors movie-node)) stream)
 	 (json:encode-object-member :type (type movie-node) stream)
 	 (json:encode-object-member :year (year movie-node) stream))
 	(t (json:encode-object-member :title (title movie-node) stream))))

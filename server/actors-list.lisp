@@ -72,6 +72,10 @@
        (equal (last-name actor-1) (last-name actor-2))
        (equal (number actor-1) (number actor-2))))
 
+(defmethod readable-actor= ((actor-1 actor) (actor-2 actor))
+  "Tests whether two actors are equal according to their readable representation."
+  (equal (readable-name actor-1) (readable-name actor-2)))
+
 (defmethod actor< ((actor-1 actor) (actor-2 actor))
   "Tests whether an actor is less than another."
   (string-lessp (name actor-1) (name actor-2)))

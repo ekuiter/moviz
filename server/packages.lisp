@@ -6,7 +6,8 @@
   (ql:quickload :wookie)
   (ql:quickload :cl-json)
   (ql:quickload :cl-who)
-  (ql:quickload :drakma))
+  (ql:quickload :drakma)
+  (ql:quickload :lquery))
 
 (defpackage :json-helpers
   (:use :common-lisp :cl-json)
@@ -23,12 +24,16 @@
 	   :goofs-list :goofs :trivia-list :trivia :crazy-credits :crazy-credits-list
 	   :soundtracks :soundtracks-list :quotes :quotes-list :record-class :id-class
 	   :inverse-id-class :movies-list :suggest :first-name :last-name :number
-	   :type :year :movie-record :episode-score)
+	   :type :year :movie-record :episode-score :readable-actor=)
   (:shadow :file-length))
 
 (defpackage :tmdb
   (:use :common-lisp :split-sequence :json-helpers)
   (:export :metadata :poster-url :genres :plot :setup :profile-url))
+
+(defpackage :synchronkartei
+  (:use :common-lisp)
+  (:export :voice-actor :dubbed-role :do-search :voice-actors))
 
 (defpackage :graph
   (:use :common-lisp)
@@ -41,7 +46,7 @@
   (:use :common-lisp :imdb :graph)
   (:export :to-dot :make-image :show :current-graph :clear-graph :add-movies :save-and-quit
 	   :make-graph :encode-graph :restore-graph :*encoding-vertices* :*encoding-edges*
-	   :find-movie))
+	   :find-movie :actors :actresses :voice-actors :movie-node))
 
 (defpackage :tests
   (:use :common-lisp :imdb)
@@ -58,6 +63,7 @@
 (load "actors-list")
 (load "movies-list")
 (load "tmdb")
+(load "synchronkartei")
 (load "graph")
 (load "app")
 (load "tests")
