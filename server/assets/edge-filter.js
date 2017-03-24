@@ -17,6 +17,18 @@ function EdgeFilter(initialized) {
 	    update: function() { return ["gender-filter", this.select.val()]; }
 	},
 
+        type: {
+	    construct: function() {
+		return this.select = $("<select>").
+		    append($("<option value='type'>").append("Type")).
+		    append($("<option value='actor'>").append("Actor")).
+		    append($("<option value='voice-actor'>").append("Voice actor")).
+		    on("selectmenuchange", self.clickFilter.bind(self));
+	    },
+	    getChecked: function() { return this.select.val() !== "type"; },
+	    update: function() { return ["type-filter", this.select.val()]; }
+	},
+
 	"same-character": {
 	    construct: function() {
 		return self.constructFilterLabel("same-character", "Same character");

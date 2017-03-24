@@ -96,8 +96,11 @@ RoleEdge.prototype = {
             text += this.profileHtml(profile2, voiceActor);
         } else if (metadata)
 	    text += this.unavailableHtml();
-	else
+	else {
 	    text += "<div class='image'><div class='loading'></div></div>";
+            if (voiceActor)
+                text += "<div class='image'></div>";
+        }
 	text += this.roleHtml(1, "", voiceActor);
 	if (this.role2)
 	    text += "<hr>" + this.roleHtml(2, " also", voiceActor);
@@ -124,7 +127,7 @@ RoleEdge.prototype = {
 	    if (!edge)
 		return "Something went wrong. Try restarting moviz.";
 
-	    defer.notify(edge.edgeHtml());
+	    defer.notify(edge.edgeHtml(null, voiceActor));
 	    edge.getMetadata().then(function(metadata) {
 		defer.resolve(edge.edgeHtml(metadata, voiceActor));
 	    });
@@ -137,7 +140,9 @@ RoleEdge.prototype = {
 	var actor = this.role1.actor.readableName;
         var voiceActor = actor.indexOf(" (VA)") !== -1 && actor.replace(" (VA)", "");
 
-        $(elem).html(voiceActor ? voiceActor + " <tspan class='small'>🎤</tspan>" : actor);
+        $(elem).hide().html(voiceActor ? voiceActor + " <tspan class='small'>🎤</tspan>" : actor);
+        defer($(elem).show.bind($(elem)));
+        
 	$(elem).qtip({
 	    content: {
 		title: function(event, api) {

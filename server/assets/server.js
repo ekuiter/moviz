@@ -21,7 +21,7 @@ function Server(initialized) {
 	this.callFilterFn("filter/node", ["movie-filter", "neighborhood-filter"]));
     this.filterEdges = this.invalidateFn(
 	this.callFilterFn("filter/edge", ["gender-filter", "same-character-filter",
-					  "billing-filter", "actor-filter"]));
+					  "billing-filter", "actor-filter", "type-filter"]));
     this.search = this.cachedFn(this.thenFn(this.callFn("search"), asList), "search");
     this.inverseSearch = this.cachedFn(
 	this.thenFn(this.callFn("inverse-search"), asList), "inverseSearch");

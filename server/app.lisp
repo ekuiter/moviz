@@ -298,6 +298,16 @@
 (deffilter actor ((name string)) edge
   (actor= (make-instance 'actor :name name) (actor (role-1 edge))))
 
+(deffilter type ((type symbol)) edge
+  (unless (or (eql type :actor) (eql type :voice-actor))
+    (error "type must be :actor or :voice-actor"))
+  (setf type (cond ((eql type :actor) 'role-edge)
+                   ((eql type :voice-actor) 'dubbed-role-edge)))
+  (eql (type-of edge) type))
+
+(deffilter type ((type string)) edge
+  (funcall (type-filter (intern (string-upcase type) :keyword)) edge))
+
 (defmethod to-dot ((graph movie-graph) &key (stream t))
   (labels ((init-fn ()
 	     (let ((font-name "Helvetica"))
