@@ -30,46 +30,87 @@ function RoleEdge(obj) {
 }
 
 RoleEdge.prototype = {
-    getMetadata: function() {
-	return App().server.tmdbSearch("actors", this.role1.actor.lastName +
-				       ", " + this.role1.actor.firstName);
+    imdbName: function(role) {
+        return role && role.actor.lastName + ", " + role.actor.firstName;
     },
 
-    roleHtml: function(role, insert) {
-	var role1Less = !this.role2 || billingScore(this.role1) < billingScore(this.role2);
+    profileUrl: function(metadata, role) {
+        return metadata && metadata[role - 1] && metadata[role - 1].profileUrl;
+    },
+    
+    getMetadata: function() {
+        var actor1 = this.imdbName(this.role1), actor2 = this.imdbName(this.role2);
+	var defer1 = App().server.tmdbSearch("actors", actor1);
+        if (this.role2 && actor1 !== actor2)
+            var defer2 = App().server.tmdbSearch("actors", actor2);
+        else
+            var defer2 = instantPromise();
+        return $.when(defer1, defer2).then(function(metadata1, metadata2) {
+            return [metadata1, metadata2];
+        });
+    },
+
+    roleSort: function(role, obj1, obj2) {
+        var role1Less = !this.role2 || billingScore(this.role1) < billingScore(this.role2);
 	if (role == 1)
-	    role = role1Less ? this.role1 : this.role2;
+	    return role1Less ? obj1 : obj2;
 	else
-	    role = role1Less ? this.role2 : this.role1;
-	var pronoun = this.gender === "male" ? "He" : "She";
-	var text = "";
-	text += "<p>" + pronoun + insert + " plays <b>";
+	    return role1Less ? obj2 : obj1;
+    },
+
+    profileSort: function(metadata, role) {
+        return this.roleSort(role, this.profileUrl(metadata, 1), this.profileUrl(metadata, 2));
+    },
+
+    roleHtml: function(role, insert, voiceActor) {
+        role = this.roleSort(role, this.role1, this.role2);
+	var pronoun = this.gender === "male" ? "He" : this.gender === "female" ? "She" : "They";
+        var verb = voiceActor ? "dub" : "play" + (this.gender ? "s" : "");
+	var text = "<p>" + pronoun + insert + " " + verb + " <b>";
 	if (billingScore(role) <= 3)
 	    text += "<span class='ui-icon ui-icon-star'></span>";
-	return text + (role.name || "?") + "</b> in <b>" + role.movie.title + "</b></p>";
+	text += (role.name || "?") + "<span>";
+        text += (voiceActor ? " (" + role.actor.readableName + ")" : "") + "</span></b>";
+        return text + " in <b>" + role.movie.title + "</b></p>";
     },
 
-    edgeHtml: function(metadata) {
+    unavailableHtml: function(invisible) {
+        return "<div class='image'><p>" + (invisible ? "" : "No image available.") + "</p></div>";
+    },
+
+    profileHtml: function(profile, voiceActor) {
+        return profile ? "<img src='" + profile + "'>" :
+            voiceActor ? this.unavailableHtml(true) : "";
+    },
+
+    edgeHtml: function(metadata, voiceActor) {
 	var text = "";
-	if (metadata && metadata.profileUrl)
-	    text += "<img src='" + metadata.profileUrl + "' >";
-	else if (metadata)
-	    text += "<div class='image'><p>No image available.</p></div>";
+        var profile1 = this.profileSort(metadata, 1);
+        var profile2 = this.profileSort(metadata, 2);
+        if (voiceActor && this.imdbName(this.role1) === this.imdbName(this.role2)) {
+            profile1 = this.profileUrl(metadata, 1);
+            profile2 = null;
+        }
+	if (profile1 || profile2) {
+            text += this.profileHtml(profile1, voiceActor);
+            text += this.profileHtml(profile2, voiceActor);
+        } else if (metadata)
+	    text += this.unavailableHtml();
 	else
 	    text += "<div class='image'><div class='loading'></div></div>";
-	text += this.roleHtml(1, "");
+	text += this.roleHtml(1, "", voiceActor);
 	if (this.role2)
-	    text += "<hr>" + this.roleHtml(2, " also");
+	    text += "<hr>" + this.roleHtml(2, " also", voiceActor);
 	return text;
     },
 
-    textHtml: function(actor, nodes, defer) {
+    textHtml: function(actor, voiceActor, nodes, defer) {
 	var self = this;
 	defer = defer || $.Deferred();
 	if (nodes && !App().server.cache.edges) {
 	    defer.notify("<div class='loading'></div>");
 	    App().server.getEdges().then(function() {
-		return self.textHtml(actor, nodes, defer);
+		return self.textHtml(actor, voiceActor, nodes, defer);
 	    });
 	} else {
 	    if (!nodes)
@@ -77,14 +118,15 @@ RoleEdge.prototype = {
 	    else
 		var edge = App().server.cache.edges.find(function(edge) {
 		    return edge.node1.title === nodes[0] && edge.node2.title === nodes[1]
-			&& edge.role1.actor.readableName === actor;
+			&& (edge.role1.actor.readableName === actor ||
+                            edge.voiceActor && edge.voiceActor.readableName === voiceActor);
 		});
 	    if (!edge)
 		return "Something went wrong. Try restarting moviz.";
 
 	    defer.notify(edge.edgeHtml());
 	    edge.getMetadata().then(function(metadata) {
-		defer.resolve(edge.edgeHtml(metadata));
+		defer.resolve(edge.edgeHtml(metadata, voiceActor));
 	    });
 	}
 	return defer.promise();
@@ -93,18 +135,21 @@ RoleEdge.prototype = {
     prepareTooltip: function(elem, nodes, showOnReady) {
 	var self = this;
 	var actor = this.role1.actor.readableName;
+        var voiceActor = actor.indexOf(" (VA)") !== -1 && actor.replace(" (VA)", "");
 
+        $(elem).html(voiceActor ? voiceActor + " <tspan class='small'>🎤</tspan>" : actor);
 	$(elem).qtip({
 	    content: {
 		title: function(event, api) {
-		    return actor;
+		    return voiceActor || actor;
 		},
 		text: function(event, api) {
-		    return self.textHtml(actor, nodes);
+		    return self.textHtml(actor, voiceActor, nodes);
 		}
 	    },
 	    show: { solo: true, ready: showOnReady },
-	    style: { classes: "qtip-dark qtip-shadow tooltip edge-tooltip" },
+	    style: { classes: "qtip-dark qtip-shadow tooltip edge-tooltip " +
+                     (voiceActor ? "voice-actor" : "") },
 	    position: { my: "top left", viewport: true },
 	    events: {
 		show: $(elem).parents("svg").length ?

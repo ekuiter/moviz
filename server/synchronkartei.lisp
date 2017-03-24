@@ -35,7 +35,7 @@
     (lquery:initialize
      (handler-bind ((flexi-streams:external-format-encoding-error
 		     (lambda (c) (declare (ignore c)) (use-value #\?))))
-       (format t "Fetching Synchronkartei page ~a~@[ and params ~a~]~%" url params)
+       (format t "Fetching Synchronkartei page ~a~@[ with params ~a~]~%" url params)
        (drakma:http-request (concatenate 'string +root-url+ url) :parameters params)))))
 
 (defun suggest (movie-title)

@@ -9,3 +9,7 @@
 .node ellipse {
     fill: white;
 }
+
+.edge tspan.small {
+    font-size: 0.8em;
+}

@@ -14,7 +14,7 @@
       (error () nil))))
 
 (defun call-api (method &optional params)
-  (format t "Calling TMDb API method ~a~@[ and params ~a~]~%" method params)
+  (format t "Calling TMDb API method ~a~@[ with params ~a~]~%" method params)
   (setf params (acons :api_key +api-key+ params))
   (setf params (loop for (key . value) in params append
 		    (acons (format nil "~(~a~)" key) value nil)))

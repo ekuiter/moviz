@@ -235,6 +235,20 @@ a:link, a:visited {
     margin: 15px 0;
 }
 
+.edge-tooltip.voice-actor img, .edge-tooltip.voice-actor .image {
+    clear: both;
+    width: 77px;
+    height: 115px;
+}
+
+.edge-tooltip.voice-actor b {
+    padding-left: 98px;
+}
+
+.edge-tooltip.voice-actor b span {
+    font-weight: normal;
+}
+
 .loading {
     margin: 10px auto;
     padding: 24px;
