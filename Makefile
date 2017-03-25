@@ -14,6 +14,7 @@ server:
 
 client: server
 	if [ ! -d "moviz.app" ]; then echo "ERROR: Please provide a clean Electron.app as moviz.app!"; exit 1; fi
+	$(MAKE) -C $(shell pwd)/server/elm
 	chmod +x client/Contents/MacOS/run
 	cp -R client/ moviz.app/
 	rm moviz.app/Contents/MacOS/moviz-server || true

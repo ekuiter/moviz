@@ -48,7 +48,8 @@ var App = (function() {
 
 	initialize("server").then(function() {
 	    return initialize(["nodeFilter", "edgeFilter", "graphClasses",
-			       "sidebar", "addMovies", "search", "progress", "debug", "graph"]);
+			       "sidebar", "addMovies", "search", "progress",
+                               "debug", "graph", "elmBridge"]);
 	}).then(function() {
 	    withElectron().then(function(electron) {
 		$("body").addClass("electron");

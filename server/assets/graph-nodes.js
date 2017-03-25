@@ -30,7 +30,7 @@ function Movie(obj) {
 
 Movie.prototype = {
     getMetadata: function() {
-	return App().server.tmdbSearch("movies", this.title);
+	return App().server.tmdb.search("movies", this.title);
     },
 
     textHtml: function() {

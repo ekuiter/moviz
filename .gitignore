@@ -11,3 +11,5 @@
 /moviz.app
 /moviz-bundle.app
 *.dat
+/server/elm/elm-stuff
+/server/assets/elm.js

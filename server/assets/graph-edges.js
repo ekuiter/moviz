@@ -40,9 +40,9 @@ RoleEdge.prototype = {
     
     getMetadata: function() {
         var actor1 = this.imdbName(this.role1), actor2 = this.imdbName(this.role2);
-	var defer1 = App().server.tmdbSearch("actors", actor1);
+	var defer1 = App().server.tmdb.search("actors", actor1);
         if (this.role2 && actor1 !== actor2)
-            var defer2 = App().server.tmdbSearch("actors", actor2);
+            var defer2 = App().server.tmdb.search("actors", actor2);
         else
             var defer2 = instantPromise();
         return $.when(defer1, defer2).then(function(metadata1, metadata2) {
@@ -121,8 +121,9 @@ RoleEdge.prototype = {
 	    else
 		var edge = App().server.cache.edges.find(function(edge) {
 		    return edge.node1.title === nodes[0] && edge.node2.title === nodes[1]
-			&& (edge.role1.actor.readableName === actor ||
-                            edge.voiceActor && edge.voiceActor.readableName === voiceActor);
+			&& voiceActor ?
+                            edge.voiceActor && edge.voiceActor.readableName === voiceActor :
+                            !edge.voiceActor && edge.role1.actor.readableName === actor;
 		});
 	    if (!edge)
 		return "Something went wrong. Try restarting moviz.";

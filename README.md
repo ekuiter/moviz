@@ -9,6 +9,7 @@ Or follow these instructions to build moviz yourself:
 ### Requirements
 
 - [Clozure Common Lisp](http://ccl.clozure.com/) and [Quicklisp](https://www.quicklisp.org) (only compile-time, `brew install clozure-cl`)
+- [Elm](http://elm-lang.org/) (only compile-time, only required for GUI)
 - libuv (`brew install libuv`)
 - the IMDb files (see below)
 - a [prebuilt binary](https://github.com/electron/electron/releases) of Electron

@@ -9,8 +9,9 @@ function Server(initialized) {
     this.setup = this.callFn("setup");
     this.getNodes = this.getFn("graph/nodes", Movie, "nodes");
     this.getEdges = this.getFn("graph/edges", RoleEdge, "edges");
-    this.tmdbSearch = this.cachedFn(
-	this.thenFn(this.callFn("tmdb/search"), asObject), "tmdbSearch");
+    this.tmdb = {
+        search: this.cachedFn(this.thenFn(this.callFn("tmdb/search"), asObject), "tmdbSearch")
+    };
     this.clear = this.destructiveFn(this.callFn("clear"));
     this.add = this.destructiveFn(this.callFn("add"));
     this.progress = this.callFn("progress");
@@ -25,6 +26,12 @@ function Server(initialized) {
     this.search = this.cachedFn(this.thenFn(this.callFn("search"), asList), "search");
     this.inverseSearch = this.cachedFn(
 	this.thenFn(this.callFn("inverse-search"), asList), "inverseSearch");
+    this.synchronkartei = {
+        suggest: this.cachedFn(
+            this.thenFn(this.callFn("synchronkartei/suggest"), asList), "synchronkarteiSuggest"),
+        add: this.destructiveFn(this.callFn("synchronkartei/add")),
+        search: this.thenFn(this.callFn("synchronkartei/search"), asList)
+    };
     this.details = this.cachedFn(this.callFn("details"), "details");
     this.suggest = this.thenFn(this.callFn("suggest"), asList);
     this.eval = this.callFn("eval");

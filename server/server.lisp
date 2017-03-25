@@ -38,7 +38,8 @@
 	(scripts (list "vendor/jquery.min" "vendor/jquery-ui.min" "vendor/svg-pan-zoom.min"
 		       "vendor/jquery.qtip.min" "helpers" "server" "filter" "node-filter"
 		       "edge-filter" "graph-classes" "sidebar" "movie-dialog" "progress"
-		       "debug" "graph" "graph-nodes" "graph-edges" "movie-details" "app")))
+		       "debug" "graph" "graph-nodes" "graph-edges" "movie-details"
+                       "elm" "elm-bridge" "app")))
     `(with-html-string
        (:html (:head (:title "moviz")
 		     (:meta :charset "utf-8")
@@ -160,7 +161,11 @@
 		      (:div
 		       (:img :src "assets/images/tmdb.svg" :width 40)
 		       (:p "This product uses the TMDb API but is not endorsed or certified by "
-			   (:a :href "http://www.themoviedb.org" :class "external" "TMDb") ".")))
+			   (:a :href "http://www.themoviedb.org" :class "external" "TMDb") "."))
+                      (:div
+		       (:div :class "img")
+		       (:p "German voice actor information provided by "
+			   (:a :href "http://www.synchronkartei.de" :class "external" "Deutsche Synchronkartei") ".")))
 		(:div :id "error-dialog" :title "Error")
 		(:div :id "add-dialog" :title "Add movies"
 		      (:p "Enter some movie titles:")

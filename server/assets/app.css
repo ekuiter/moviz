@@ -157,12 +157,14 @@ a:link, a:visited {
     clear: both;
 }
 
-#info-dialog img {
+#info-dialog img, #info-dialog .img {
     float: left;
     margin: 5px 8px 5px 5px;
+    min-width: 40px;
+    min-height: 40px;
 }
 
-#info-dialog img + p {
+#info-dialog img + p, #info-dialog .img + p {
     padding-top: 5px;
 }
 
