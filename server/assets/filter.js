@@ -13,7 +13,7 @@ Filter.prototype = {
 	var label = $("<label>");
 	var input = $("<input type='checkbox'>").
 	    prop("value", name).
-	    prop("checked", this.checkedFilters.indexOf(name) !== -1).
+	    prop("checked", this.isChecked(name)).
 	    click(self.clickFilter.bind(self));
 	return label.append(input).append(text || name);
     },
@@ -27,6 +27,11 @@ Filter.prototype = {
 
     clickFilter: function() {
 	this.checkedFilters = this.getCheckedFilters();
-	this.update();
+        if (this.update)
+	    this.update();
+    },
+
+    isChecked: function(filter) {
+        return this.checkedFilters.indexOf(filter) !== -1;
     }
 };

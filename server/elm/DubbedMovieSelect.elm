@@ -1,7 +1,8 @@
 module DubbedMovieSelect exposing (..)
 
-import Html exposing (Html, div, select, option, text)
-import Html.Events exposing (onInput)
+import Html exposing (Html, tr, td, label, select, text, option, div)
+import Html.Attributes exposing (for, id, class)
+import Html.Events exposing (on)
 import Json.Decode as Decode exposing (field, string, list, oneOf, null)
 import Http
 import Bridge
@@ -17,7 +18,6 @@ type alias DubbedMovie =
 
 type DubbedMovieEntry
     = Entry DubbedMovie
-    | Loading
     | SelectionEmpty
 
 
@@ -26,24 +26,35 @@ dubbedMovieDecoder =
     Decode.map2 DubbedMovie (field "title" string) (field "path" string)
 
 
+type State
+    = Loading
+    | Ready
+    | Done
+
+
 type alias Model =
-    { title : String, entries : List DubbedMovieEntry, selectedEntry : Maybe DubbedMovie }
+    { state : State
+    , title : String
+    , entries : List DubbedMovieEntry
+    , selectedEntry : Maybe DubbedMovie
+    }
 
 
 type Msg
     = Change String
     | NewSuggestions (Result Http.Error (List DubbedMovie))
+    | StateChange Bridge.StateChange
 
 
 main : Program Flags Model Msg
 main =
     Html.programWithFlags
-        { init = init, view = view, update = update, subscriptions = always Sub.none }
+        { init = init, view = view, update = update, subscriptions = subscriptions }
 
 
 model : Model
 model =
-    { title = "", entries = [ Loading ], selectedEntry = Nothing }
+    { state = Loading, title = "", entries = [], selectedEntry = Nothing }
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -66,7 +77,8 @@ update msg model =
 
         NewSuggestions (Ok suggestions) ->
             { model
-                | entries = SelectionEmpty :: (List.map Entry suggestions)
+                | state = Ready
+                , entries = SelectionEmpty :: (List.map Entry suggestions)
                 , selectedEntry = Nothing
             }
                 ! []
@@ -74,13 +86,54 @@ update msg model =
         NewSuggestions (Err err) ->
             model ! [ Bridge.reportError (toString err) ]
 
+        StateChange s ->
+            { model | state = stringToState s.state, selectedEntry = Nothing } ! []
+
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ select [ onInput Change ] (List.map makeOption model.entries)
-        , text (optionTitle model.selectedEntry)
-        ]
+    let
+        elem =
+            case model.state of
+                Loading ->
+                    div [ class "progress" ] []
+
+                Ready ->
+                    select [ id model.title, onChange Change ] (List.map makeOption model.entries)
+
+                Done ->
+                    text "Done"
+    in
+        tr []
+            [ td [] [ label [ for model.title ] [ text model.title ] ]
+            , td [] [ elem ]
+            ]
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Bridge.dubbedMovieSelectState StateChange
+
+
+stringToState : String -> State
+stringToState str =
+    case str of
+        "loading" ->
+            Loading
+
+        "ready" ->
+            Ready
+
+        "done" ->
+            Done
+
+        _ ->
+            Loading
+
+
+onChange : (String -> msg) -> Html.Attribute msg
+onChange handler =
+    on "change" <| Decode.map handler <| Decode.at [ "target", "value" ] string
 
 
 getSuggestions : String -> Cmd Msg
@@ -101,9 +154,6 @@ isSelectedEntry title entry =
                 Just dubbedMovie
             else
                 Nothing
-
-        Loading ->
-            Nothing
 
         SelectionEmpty ->
             Nothing
@@ -127,9 +177,6 @@ makeOption entry =
                 Entry dubbedMovie ->
                     dubbedMovie.title
 
-                Loading ->
-                    loadingTitle
-
                 SelectionEmpty ->
                     selectionEmptyTitle
     in
@@ -139,11 +186,6 @@ makeOption entry =
 isActualTitle : String -> Bool
 isActualTitle title =
     title /= loadingTitle && title /= selectionEmptyTitle
-
-
-optionTitle : Maybe DubbedMovie -> String
-optionTitle entry =
-    Maybe.withDefault "(Nothing)" (Maybe.map (\e -> e.title ++ " (" ++ e.path ++ ")") entry)
 
 
 adjustTitle : Model -> Maybe DubbedMovie

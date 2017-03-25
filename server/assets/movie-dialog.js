@@ -1,10 +1,10 @@
-function MovieDialog(button, dialog, dialogButton, cb) {
+function MovieDialog(button, dialog, dialogButton, cb, cb2) {
     var self = this;    
     var options = { buttons: {} };
     options.buttons[dialogButton] = cb;
     var input = $(dialog).find("input");
     makeMenuDialog(button, dialog, options,
-		   function() { input.val(""); });
+		   function() { input.val(""); if (cb2) cb2(); });
     attachInputEvent(input, cb);
     input.autocomplete({
 	source: function(req, res) {
@@ -35,17 +35,38 @@ MovieDialog.prototype = {
 
 function AddMovies() {
     var self = this;
-    MovieDialog.call(self, "#add", "#add-dialog", "Add", addMovies);
+    MovieDialog.call(self, "#add", "#add-dialog", "Add", addMovies, function() {
+        var div = $("#add-dialog .options").empty();
+        var options = self.options = new Filter(div);
+        var imdbLabel = options.constructFilterLabel("imdb", "Add IMDb actor information");
+        div.append(imdbLabel).
+            append(options.constructFilterLabel("synchronkartei",
+                                                "Add german voice actor information")).
+            controlgroup({ direction: "vertical" });
+        imdbLabel.find("input").click();
+    });
     
     function addMovies() {
-	var movies = self.extractMovies($("#add-dialog input").val());
-	App().server.add(movies).always(function() {
+        var defer = instantPromise();
+        defer.always(function() {
 	    $("#add-dialog").dialog("close");
-	}).done(function() {
-	    App().progress.report().done(function() {
-		App().nodeFilter.checkAllFilters();
-	    });
 	});
+	var movies = self.extractMovies($("#add-dialog input").val()).
+            filter(function(movie) { return movie !== ""; });
+        
+	if (movies.length > 0 && self.options.isChecked("imdb")) {
+            defer = App().server.add(movies).done(function() {
+	        App().progress.report().done(function() {
+		    App().nodeFilter.checkAllFilters().then(function() {
+                        if (self.options.isChecked("synchronkartei"))
+                            App().addVoiceActors.update();
+                    });
+	        });
+	    });
+        } else if (self.options.isChecked("synchronkartei"))
+            App().addVoiceActors.update();
+        
+        return defer.promise();
     }
 }
 

@@ -181,6 +181,25 @@ a:link, a:visited {
     height: 20px;
 }
 
+#add-dialog .options {
+    width: 100%;
+    margin-top: 10px;
+}
+
+#add-voice-actors-dialog .elm table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+#add-voice-actors-dialog .elm table select {
+    width: 100%;
+}
+
+#add-voice-actors-dialog .elm .progress {
+    min-height: 20px;
+    height: 20px;
+}
+
 #progress-dialog .progress .ui-progressbar-value {
     font-weight: normal;
     line-height: 32px;

@@ -39,7 +39,7 @@
 		       "vendor/jquery.qtip.min" "helpers" "server" "filter" "node-filter"
 		       "edge-filter" "graph-classes" "sidebar" "movie-dialog" "progress"
 		       "debug" "graph" "graph-nodes" "graph-edges" "movie-details"
-                       "elm" "elm-bridge" "app")))
+                       "add-voice-actors" "elm" "elm-bridge" "app")))
     `(with-html-string
        (:html (:head (:title "moviz")
 		     (:meta :charset "utf-8")
@@ -165,11 +165,13 @@
                       (:div
 		       (:div :class "img")
 		       (:p "German voice actor information provided by "
-			   (:a :href "http://www.synchronkartei.de" :class "external" "Deutsche Synchronkartei") ".")))
+			   (:a :href "http://www.synchronkartei.de" :class "external"
+                               "Deutsche Synchronkartei") ".")))
 		(:div :id "error-dialog" :title "Error")
 		(:div :id "add-dialog" :title "Add movies"
 		      (:p "Enter some movie titles:")
-		      (:input))
+		      (:input)
+                      (:div :class "options"))
 		(:div :id "clear-dialog" :title "Clear graph"
 		      (:p "Do you really want to remove all movies?"))
 		(:div :id "load-dialog" :title "Load graph"
@@ -183,6 +185,9 @@
 		      (:p :class "results"))
 		(:div :id "progress-dialog" :title "Adding movies ..."
 		      (:p :class "progress"))
+                (:div :id "add-voice-actors-dialog" :title "Add voice actors"
+                      (:p "For each movie, choose the right dubbed movie:")
+                      (:div :class "elm"))
 		(:div :id "setup-dialog" :title "Setting up ..."
 		      (:p "Hold on, this only needs to be done once.")
 		      (:p :class "progress"))

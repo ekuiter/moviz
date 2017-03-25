@@ -21,7 +21,7 @@ function EdgeFilter(initialized) {
 	    construct: function() {
 		return this.select = $("<select>").
 		    append($("<option value='type'>").append("Type")).
-		    append($("<option value='actor'>").append("Actor")).
+		    append($("<option value='actor' selected>").append("Actor")).
 		    append($("<option value='voice-actor'>").append("Voice actor")).
 		    on("selectmenuchange", self.clickFilter.bind(self));
 	    },
@@ -48,7 +48,7 @@ function EdgeFilter(initialized) {
 	    update: function() { return ["billing-filter", this.input.spinner("value")]; }
 	}
     };
-
+    
     self.forFilters(function(filterObj) {
 	$(self.sel).append(filterObj.construct.call(filterObj));
     });
@@ -56,6 +56,7 @@ function EdgeFilter(initialized) {
     self.forFilters(function(filterObj) {
 	filterObj.afterConstruct && filterObj.afterConstruct.call(filterObj);
     });
+    self.checkedFilters = self.getCheckedFilters();
     self.update().then(initialized);
 };
 
