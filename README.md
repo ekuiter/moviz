@@ -55,6 +55,9 @@ The server accepts the following GET requests: (Almost all routes return JSON da
 - `/filter/edge/FILTER` filters graph edges using FILTER (given as JSON)
 - `/search/LIST/ID` searches IMDb LIST for ID
 - `/inverse-search/LIST/RECORD` inverse searches IMDb LIST for RECORD
+- `/synchronkartei/suggest/TITLE` suggests dubbed movies matching TITLE
+- `/synchronkartei/add/MOVIE/PATH` adds voice actors for MOVIE at PATH to the graph
+- `/synchronkartei/search/MOVIE` returns all voice actors for MOVIE
 - `/details/MOVIE` fetches TMDb metadata and searches IMDb notes lists for MOVIE
 - `/suggest/TITLE` suggests movies matching TITLE
 - `/eval/FORM` evaluates FORM (given as string) on the server
