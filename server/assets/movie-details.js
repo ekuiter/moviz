@@ -55,7 +55,7 @@ function MovieDetails(movie) {
 		    return "<a href='#' class='episode'><em>" + episode + "</em></a>";
 		else
 		    return "<a href='#' class='movie'><em>" + currentMovie + "</em></a>" +
-		(episode ? " - <em>" + episode + "</em>" : "");
+		    (episode ? " - <em>" + episode + "</em>" : "");
 	    }],
 	    [/SPOILER:/g, "<span class='spoiler'>Spoiler</span>:"],
 	    [/^CONT:/g, "<span class='goof'>Continuity</span>:"],
@@ -126,28 +126,43 @@ function MovieDetails(movie) {
 	    if (data.movie) {
 		makeNavLink("Summary & cast", function() {
 		    var flex = $("<div class='flex'>"),
-			actorsUl = $("<ul>"), actressesUl = $("<ul>");
+			actorsUl = $("<ul>"), actressesUl = $("<ul>"), voiceActorsUl = $("<ul>");
 		    var metadataDiv = $("<div class='tooltip'>");
 		    addRoles(actorsUl, data.movie.actors, "actors");
 		    addRoles(actressesUl, data.movie.actresses, "actresses");
+                    if (data.movie.voiceActors)
+                        addRoles(voiceActorsUl, data.movie.voiceActors, "voice actors",
+                                 function(dubbedRole) {
+                                     return dubbedRole.voiceActor.readableName;
+                                 }, function(dubbedRole) {
+                                     return { role1: dubbedRole.role,
+                                              voiceActor: dubbedRole.voiceActor };
+                                 });
 		    new Movie(data.movie).textHtml().then(function(html) {
 			metadataDiv.html(html);
 		    });
 		    detailsDiv.append(metadataDiv).append($("<div class='clear'>")).
 			append(flex.append(actorsUl).append(actressesUl));
+                    if (data.movie.voiceActors)
+                        flex.append(voiceActorsUl);
 		    
-		    function addRoles(ul, collection, noun) {
+		    function addRoles(ul, collection, noun, nameFn, roleEdgeFn) {
+                        nameFn = nameFn || function(role) {
+                            return role.actor.readableName;
+                        };
+                        roleEdgeFn = roleEdgeFn || function(role) {
+                            return { role1: role, gender: noun == "actors" ? "male" : "female" };
+                        };
 			ul.append($("<p>").html(
 			    "<b>" + collection.length + " " + noun + "</b>:"));
 			collection.sort(function(first, second) {
 			    return billingScore(first) - billingScore(second);
 			});
 			collection.forEach(function(role) {
-			    var actorSpan = $("<span>").append(role.actor.readableName);
+			    var actorSpan = $("<span>").append(nameFn(role));
 			    actorSpan.one("mouseenter", function() {
-				new RoleEdge({
-				    role1: role, gender: noun == "actors" ? "male" : "female"
-				}).prepareTooltip(actorSpan, null, true);
+				new RoleEdge(roleEdgeFn(role)).
+                                    prepareTooltip(actorSpan, null, true);
 			    });
 			    ul.append($("<li>").append(actorSpan));
 			});

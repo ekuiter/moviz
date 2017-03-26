@@ -91,5 +91,5 @@ function svgDocument() {
 }
 
 function billingScore(role) {
-    return role.billing || 9999;
+    return role.role ? billingScore(role.role) : role.billing || 9999;
 }

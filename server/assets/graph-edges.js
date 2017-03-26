@@ -93,12 +93,13 @@ RoleEdge.prototype = {
         }
 	if (profile1 || profile2) {
             text += this.profileHtml(profile1, voiceActor);
-            text += this.profileHtml(profile2, voiceActor);
+            if (this.role2)
+                text += this.profileHtml(profile2, voiceActor);
         } else if (metadata)
 	    text += this.unavailableHtml();
 	else {
 	    text += "<div class='image'><div class='loading'></div></div>";
-            if (voiceActor)
+            if (voiceActor && this.role2)
                 text += "<div class='image'></div>";
         }
 	text += this.roleHtml(1, "", voiceActor);
@@ -139,10 +140,14 @@ RoleEdge.prototype = {
     prepareTooltip: function(elem, nodes, showOnReady) {
 	var self = this;
 	var actor = this.role1.actor.readableName;
-        var voiceActor = actor.indexOf(" (VA)") !== -1 && actor.replace(" (VA)", "");
+        var voiceActor = this.voiceActor && this.voiceActor.readableName ||
+            actor.indexOf(" (VA)") !== -1 && actor.replace(" (VA)", "");
 
-        $(elem).hide().html(voiceActor ? voiceActor + " <tspan class='small'>🎤</tspan>" : actor);
-        defer($(elem).show.bind($(elem)));
+        if (!showOnReady) {
+            $(elem).hide().
+                html(voiceActor ? voiceActor + " <tspan class='small'>🎤</tspan>" : actor);
+            defer($(elem).show.bind($(elem)));
+        }
         
 	$(elem).qtip({
 	    content: {
@@ -155,7 +160,7 @@ RoleEdge.prototype = {
 	    },
 	    show: { solo: true, ready: showOnReady },
 	    style: { classes: "qtip-dark qtip-shadow tooltip edge-tooltip " +
-                     (voiceActor ? "voice-actor" : "") },
+                     (voiceActor ? "voice-actor" + (showOnReady ? " details" : "") : "") },
 	    position: { my: "top left", viewport: true },
 	    events: {
 		show: $(elem).parents("svg").length ?

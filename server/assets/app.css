@@ -256,13 +256,13 @@ a:link, a:visited {
     margin: 15px 0;
 }
 
-.edge-tooltip.voice-actor img, .edge-tooltip.voice-actor .image {
+.edge-tooltip.voice-actor:not(.details) img, .edge-tooltip.voice-actor:not(.details) .image {
     clear: both;
     width: 77px;
     height: 115px;
 }
 
-.edge-tooltip.voice-actor b {
+.edge-tooltip.voice-actor:not(.details) b {
     padding-left: 98px;
 }
 

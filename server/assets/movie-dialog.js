@@ -41,7 +41,7 @@ function AddMovies() {
         var imdbLabel = options.constructFilterLabel("imdb", "Add IMDb actor information");
         div.append(imdbLabel).
             append(options.constructFilterLabel("synchronkartei",
-                                                "Add german voice actor information")).
+                                                "Add German voice actor information")).
             controlgroup({ direction: "vertical" });
         imdbLabel.find("input").click();
     });
